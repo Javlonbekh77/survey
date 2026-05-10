@@ -1,5 +1,4 @@
 import { db, isMock } from './firebase-config.js';
-import { renderHome } from './views/home.js';
 import { renderAdmin } from './views/admin.js';
 import { renderTest } from './views/test.js';
 import { renderLogin } from './views/login.js';
@@ -12,13 +11,12 @@ const navLogo = document.getElementById('nav-logo');
 
 // Router State
 const state = {
-    currentView: 'home',
+    currentView: 'login',
     params: {}
 };
 
 // Route Definitions
 const routes = {
-    home: renderHome,
     admin: renderAdmin,
     test: renderTest,
     login: renderLogin
@@ -78,7 +76,6 @@ function updateNav(isTesting = false, isAdminView = false) {
     }
 
     navLinks.innerHTML = `
-        <button class="nav-btn ${state.currentView === 'home' ? 'active' : ''}" data-view="home">Bosh sahifa</button>
         ${isLogged ? `
             <button class="nav-btn" data-view="admin">Dashboard</button>
             <button class="nav-btn" id="logout-btn"><i data-lucide="log-out"></i></button>
@@ -102,7 +99,7 @@ navLinks.addEventListener('click', (e) => {
     }
 });
 
-navLogo.addEventListener('click', () => { window.location.hash = 'home'; });
+navLogo.addEventListener('click', () => { window.location.hash = 'login'; });
 
 function handleHash() {
     const hash = window.location.hash.substring(1);
@@ -110,7 +107,7 @@ function handleHash() {
         const token = hash.split('/')[1];
         navigate('test', { token });
     } else {
-        const view = hash || 'home';
+        const view = hash || 'login';
         console.log("🔗 Hash changed to:", view);
         navigate(view);
     }

@@ -18,13 +18,13 @@ export async function renderTest(container, params) {
     try {
         if (!token) throw new Error("Token topilmadi!");
         const qAssign = query(collection(db, "assignments"), where("token", "==", String(token).toUpperCase()), where("active", "==", true), limit(1));
-        const snapAssign = await getDocs(qAssign);
+        const snapAssign = await getDocs(qAssign).catch(e => { throw new Error("Bazadan ma'lumot olishda xato: " + e.message); });
 
         if (snapAssign.empty) throw new Error("Havola muddati tugagan yoki xato!");
         assignment = { id: snapAssign.docs[0].id, ...snapAssign.docs[0].data() };
 
         const testRef = doc(db, "tests", assignment.testId);
-        const testSnap = await getDoc(testRef);
+        const testSnap = await getDoc(testRef).catch(e => { throw new Error("Testni yuklashda xato: " + e.message); });
         if (!testSnap.exists()) throw new Error("Test topilmadi!");
         test = { id: testSnap.id, ...testSnap.data() };
 
@@ -486,8 +486,4 @@ function renderSuccess(container, score) {
         </style>
     `;
     if (window.lucide) window.lucide.createIcons();
-    
-    document.getElementById('finish-btn').onclick = () => {
-        navigate('home');
-    };
 }
