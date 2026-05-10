@@ -395,13 +395,40 @@ async function finishTest(container) {
     });
 
     try {
+        // 1. Calculate Portrait Data and Conclusion
+        let conclusion = "";
+        if (test.interpretations) {
+            const match = test.interpretations.find(i => score >= i.min && score <= i.max);
+            if (match) conclusion = match.text;
+        }
+
+        const portraitData = {};
+        test.questions.forEach((q, i) => {
+            let finalAns = answers[i] || '---';
+            if ((q.type === 'single' || q.type === 'weighted') && q.options) {
+                const opt = q.options.find(o => o.text === answers[i]);
+                if (opt && opt.profileComment) finalAns = opt.profileComment;
+            }
+            const label = q.qComment || q.text;
+            portraitData[label] = finalAns;
+        });
+
+        // 2. Save Submission
         await addDoc(collection(db, "submissions"), {
-            testId: test.id, testTitle: test.title, assignmentId: assignment.id,
-            groupId: assignment.groupId, studentName: studentName, answers: answers,
-            score: score, timestamp: serverTimestamp(),
+            testId: test.id, 
+            testTitle: test.title,
+            assignmentId: assignment.id,
+            groupId: assignment.groupId, 
+            studentName: studentName, 
+            answers: answers,
+            score: score, 
+            conclusion: conclusion,
+            portraitData: test.isProfileData ? portraitData : null,
+            timestamp: serverTimestamp(),
             isProfileData: !!test.isProfileData
         });
 
+        // 3. Update Student Profile if important
         if (test.isProfileData) {
             const groupRef = doc(db, "groups", assignment.groupId);
             const groupSnap = await getDoc(groupRef);
@@ -409,16 +436,14 @@ async function finishTest(container) {
                 const data = groupSnap.data();
                 const sIdx = (data.students || []).findIndex(s => s.name === studentName);
                 if (sIdx !== -1) {
-                    const profileData = {};
-                    test.questions.forEach((q, i) => {
-                        let finalAns = answers[i] || '---';
-                        if ((q.type === 'single' || q.type === 'weighted') && q.options) {
-                            const opt = q.options.find(o => o.text === answers[i]);
-                            if (opt && opt.profileComment) finalAns = opt.profileComment;
-                        }
-                        const label = q.qComment || q.text;
-                        profileData[label] = finalAns;
-                    });
+                    const profileData = data.students[sIdx].profileData || {};
+                    
+                    // Add summary of this test to profile
+                    profileData[test.title] = `${score} ball: ${conclusion}`;
+                    
+                    // Add portrait details
+                    Object.assign(profileData, portraitData);
+
                     data.students[sIdx].profileData = profileData;
                     await updateDoc(groupRef, { students: data.students });
                 }

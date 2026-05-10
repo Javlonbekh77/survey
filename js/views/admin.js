@@ -1327,11 +1327,12 @@ export async function renderAdmin(container) {
                                     const scoreColor = s.score > 20 ? 'badge-danger' : (s.score > 10 ? 'badge-warning' : 'badge-success');
                                     return `
                                         <div class="flex-between mb-3 p-3 border-bottom v-sub-detail hover-card" data-id="${s.id}" style="cursor:pointer; border-radius:15px">
-                                            <div style="text-align:left">
+                                            <div style="text-align:left; flex: 1;">
                                                 <p style="font-weight:700; margin-bottom:2px">${s.testTitle}</p>
+                                                <p class="text-primary small" style="font-weight:600">${s.conclusion || ''}</p>
                                                 <p class="text-muted small">${new Date(s.timestamp?.seconds*1000).toLocaleDateString()}</p>
                                             </div>
-                                            <span class="badge ${scoreColor}">${s.score} ball</span>
+                                            <span class="badge ${scoreColor}" style="margin-left:10px">${s.score} ball</span>
                                         </div>`;
                                 }).join('') : '<p class="text-muted">Hali test topshirilmagan</p>'}
                             </div>
@@ -1378,16 +1379,22 @@ export async function renderAdmin(container) {
                 if(!test) return showToast("Test ma'lumotlari topilmadi", "error");
                 const detailHtml = `
                     <div class="detail-list" style="max-height: 500px; overflow-y: auto; padding: 10px">
-                        ${test.questions.map((q, i) => `
-                            <div class="mb-4 p-4" style="background:rgba(67, 24, 255, 0.03); border-radius:20px; text-align:left">
-                                <p class="small text-primary font-weight-800 mb-1">SAVOL ${i+1}</p>
-                                <p style="font-weight:700; font-size:1.1rem; line-height:1.4">${q.text}</p>
-                                <div class="mt-3 p-3" style="background:white; border-radius:12px; border:1px solid rgba(0,0,0,0.05)">
-                                    <span class="text-muted small">Tanlangan javob:</span>
-                                    <p class="font-weight-800 color-primary" style="font-size:1.1rem; margin-top:5px">${sub.answers[i] || '---'}</p>
+                        ${sub.portraitData ? 
+                            Object.entries(sub.portraitData).map(([q, a], i) => `
+                                <div class="mb-3 p-3" style="background:rgba(67, 24, 255, 0.03); border-radius:15px; text-align:left">
+                                    <p class="small text-primary font-weight-800 mb-1">${q}</p>
+                                    <p style="font-weight:700; font-size:1rem; line-height:1.3; color:var(--text)">${a}</p>
                                 </div>
-                            </div>
-                        `).join('')}
+                            `).join('')
+                        : 
+                            test.questions.map((q, i) => `
+                                <div class="mb-3 p-3" style="background:rgba(67, 24, 255, 0.03); border-radius:15px; text-align:left">
+                                    <p class="small text-muted font-weight-800 mb-1">SAVOL ${i+1}</p>
+                                    <p style="font-weight:700; font-size:1rem; line-height:1.3">${q.text}</p>
+                                    <p class="mt-2 text-primary" style="font-weight:600">Javob: ${sub.answers[i] || '---'}</p>
+                                </div>
+                            `).join('')
+                        }
                     </div>`;
                 showModal(`${sub.testTitle}`, detailHtml, () => true);
             };
