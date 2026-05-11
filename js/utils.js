@@ -60,19 +60,19 @@ export function toggleTheme() {
 }
 
 // Modals
-export function showModal(title, content, onConfirm) {
+export function showModal(title, content, onConfirm, confirmText = 'Tasdiqlash') {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay animate-fade';
     modal.innerHTML = `
-        <div class="modal-card animate-scale">
-            <div class="flex-between mb-3">
+        <div class="modal-card animate-scale" style="max-width: 600px; max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="flex-between mb-3" style="flex-shrink: 0;">
                 <h3>${title}</h3>
                 <button class="btn-icon close-modal">×</button>
             </div>
-            <div class="modal-body">${content}</div>
-            <div class="flex-between mt-4">
+            <div class="modal-body" style="overflow-y: auto; flex: 1; padding-right: 5px;">${content}</div>
+            <div class="flex-between mt-4" style="flex-shrink: 0;">
                 <button class="btn btn-outline close-modal">Bekor qilish</button>
-                <button class="btn btn-primary confirm-modal">Tasdiqlash</button>
+                <button class="btn btn-primary confirm-modal">${confirmText}</button>
             </div>
         </div>
     `;
@@ -82,6 +82,9 @@ export function showModal(title, content, onConfirm) {
     modal.querySelectorAll('.close-modal').forEach(b => b.onclick = close);
     modal.querySelector('.confirm-modal').onclick = async () => {
         const success = await onConfirm(modal);
-        if (success) close();
+        if (success !== false) close();
     };
+    
+    if (window.lucide) window.lucide.createIcons();
+    return modal;
 }

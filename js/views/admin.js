@@ -232,40 +232,78 @@ export async function renderAdmin(container) {
             };
             input.click();
         };
-
         area.querySelectorAll('.edit-test').forEach(b => b.onclick = () => renderTestCreator(area, tests.find(t => t.id === b.dataset.id)));
         area.querySelectorAll('.del-test').forEach(b => b.onclick = async () => { if(confirm("O'chirilsinmi?")) { await deleteDoc(doc(db,"tests",b.dataset.id)); clearCache(); renderTab(); } });
     }
 
     async function renderTestCreator(area, existing = null) {
         area.innerHTML = `
-            <div class="card animate-fade" style="padding: 15px;">
-                <div class="flex-between mb-3">
-                    <h2 style="font-size: 1.5rem;"><i data-lucide="edit-3"></i> Test Tahrirlash</h2>
-                    <button class="btn btn-outline btn-sm" id="btn-back"><i data-lucide="arrow-left"></i> Orqaga</button>
-                </div>
-                <form id="t-form">
-                    <div class="grid grid-3 mb-2" style="gap: 12px;">
-                        <div class="input-group"><label class="small">Nomi</label><input type="text" id="t-title" required value="${existing?.title||''}" style="padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05)"></div>
-                        <div class="input-group"><label class="small">Vaqt (daqiqa)</label><input type="number" id="t-time" value="${existing?.timeLimit||30}" style="padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05)"></div>
-                        <div class="input-group flex-center" style="flex-direction:row; gap:10px; margin-top:20px">
-                            <input type="checkbox" id="t-important" style="width:18px; height:18px; cursor:pointer" ${existing?.isProfileData ? 'checked' : ''}>
-                            <label for="t-important" style="margin:0; cursor:pointer; font-weight:700; color:var(--primary); font-size: 0.9rem;">Muhim (Profil uchun)</label>
+            <div class="animate-fade" style="max-width: 1200px; margin: 0 auto;">
+                <header class="flex-between mb-4 sticky-header" style="background: var(--surface); padding: 15px 20px; border-radius: 20px; box-shadow: var(--shadow); position: sticky; top: 10px; z-index: 100;">
+                    <div class="flex-gap">
+                        <div class="icon-circle primary" style="width:40px; height:40px"><i data-lucide="edit-3"></i></div>
+                        <div>
+                            <h2 style="font-size: 1.2rem; margin:0">${existing ? 'Testni Tahrirlash' : 'Yangi Test Yaratish'}</h2>
+                            <p class="text-muted small" style="margin:0">Barcha maydonlarni to'ldiring</p>
                         </div>
                     </div>
-                    
-                    <div class="flex-between mb-2">
-                        <h4 style="margin:0">Savollar</h4>
-                        <div class="badge badge-info" id="q-count-badge" style="font-size: 0.7rem; padding: 4px 8px;">0 savol</div>
+                    <div class="flex-gap">
+                        <button class="btn btn-outline btn-sm" id="btn-back"><i data-lucide="arrow-left"></i> Orqaga</button>
+                        <button type="submit" form="t-form" class="btn btn-primary btn-sm" style="box-shadow: 0 5px 15px rgba(67, 24, 255, 0.2)">
+                            <i data-lucide="save"></i> Saqlash
+                        </button>
                     </div>
-                    <div id="q-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
-                    <button type="button" class="btn btn-outline w-100 mt-2 mb-2" id="add-q" style="border-style: dashed; border-width: 2px; padding: 8px; font-size: 0.85rem;">+ Yangi Savol Qo'shish</button>
+                </header>
 
-                    <h4 class="mb-2">Xulosaviy Tahlillar</h4>
-                    <div id="i-container" class="mb-2"></div>
-                    <button type="button" class="btn btn-outline btn-sm w-100 mb-2" id="add-i" style="padding: 6px;">+ Shart Qo'shish</button>
+                <form id="t-form" class="grid grid-3" style="gap: 20px; align-items: start;">
+                    <!-- Sidebar: General Info & Interpretations -->
+                    <div style="grid-column: span 1; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 90px;">
+                        <div class="card" style="padding: 20px;">
+                            <h4 class="mb-3 flex-gap"><i data-lucide="info" style="width:16px"></i> Umumiy ma'lumot</h4>
+                            <div class="input-group mb-3">
+                                <label class="small">Test Nomi</label>
+                                <input type="text" id="t-title" required value="${existing?.title||''}" placeholder="Masalan: Temperament testi">
+                            </div>
+                            <div class="input-group mb-3">
+                                <label class="small">Vaqt Chegarasi (daqiqa)</label>
+                                <input type="number" id="t-time" value="${existing?.timeLimit||30}">
+                            </div>
+                            <label class="flex-gap hover-card p-2" style="cursor:pointer; border-radius:12px; border: 1px solid var(--border)">
+                                <input type="checkbox" id="t-important" style="width:18px; height:18px" ${existing?.isProfileData ? 'checked' : ''}>
+                                <div>
+                                    <strong class="small" style="color:var(--primary)">Muhim (Profil uchun)</strong>
+                                    <p class="text-muted" style="font-size:0.65rem; margin:0">Natijalar talaba profilida saqlanadi</p>
+                                </div>
+                            </label>
+                        </div>
 
-                    <button type="submit" class="btn btn-primary w-100" style="padding:14px; font-size:1rem; box-shadow: 0 10px 20px rgba(67, 24, 255, 0.2)">Saqlash</button>
+                        <div class="card" style="padding: 20px;">
+                            <div class="flex-between mb-3">
+                                <h4 style="margin:0" class="flex-gap"><i data-lucide="pie-chart" style="width:16px"></i> Xulosalar</h4>
+                                <button type="button" class="btn btn-icon primary" id="add-i" style="width:24px; height:24px"><i data-lucide="plus"></i></button>
+                            </div>
+                            <div id="i-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Main: Questions -->
+                    <div style="grid-column: span 2;">
+                        <div class="flex-between mb-3" style="padding: 0 10px;">
+                            <div class="flex-gap">
+                                <h3 style="margin:0">Savollar</h3>
+                                <div class="badge badge-info" id="q-count-badge">0 savol</div>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-sm" id="add-q" style="border-radius: 12px;">
+                                <i data-lucide="plus-circle"></i> Yangi Savol
+                            </button>
+                        </div>
+                        <div id="q-container" style="display: flex; flex-direction: column; gap: 15px;"></div>
+                        
+                        <div class="mt-4 p-5 text-center" id="empty-qs" style="display:none; border: 2px dashed var(--border); border-radius: 20px; opacity:0.5">
+                            <i data-lucide="help-circle" style="width:40px; height:40px; margin-bottom:10px"></i>
+                            <p>Hozircha savollar yo'q. "Yangi Savol" tugmasini bosing.</p>
+                        </div>
+                    </div>
                 </form>
             </div>`;
 
@@ -275,56 +313,79 @@ export async function renderAdmin(container) {
         const updateQCount = () => {
             const count = qC.children.length;
             const badge = document.getElementById('q-count-badge');
+            const empty = document.getElementById('empty-qs');
             if (badge) badge.innerText = `${count} savol`;
+            if (empty) empty.style.display = count === 0 ? 'block' : 'none';
         };
 
         const addQ = (d=null) => {
             const div = document.createElement('div'); 
-            div.className='card mt-0 animate-fade'; 
-            div.style='background:white; border: 1px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,0.03); padding: 12px; border-radius: 12px; transition: all 0.3s ease;';
+            div.className='card animate-fade'; 
+            div.style='background:white; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 16px; border-radius: 16px; transition: all 0.3s ease; position:relative';
             
             div.innerHTML = `
-                <div class="flex-between mb-2">
+                <div class="flex-between mb-3">
                     <div class="flex-gap">
-                        <div class="icon-circle primary" style="width:24px; height:24px; font-size:0.7rem; margin:0">?</div>
-                        <strong style="color:var(--text); font-size: 0.9rem;">Savol</strong>
+                        <span class="q-number" style="background:var(--primary); color:white; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:6px; font-size:0.75rem; font-weight:800">1</span>
+                        <strong style="color:var(--text); font-size: 0.85rem;">Savol</strong>
                     </div>
-                    <div class="flex-gap">
-                        <button type="button" class="btn-icon move-up" title="Yuqoriga" style="padding: 4px;"><i data-lucide="arrow-up" style="width:14px"></i></button>
-                        <button type="button" class="btn-icon move-down" title="Pastga" style="padding: 4px;"><i data-lucide="arrow-down" style="width:14px"></i></button>
-                        <button type="button" class="btn-icon text-danger" onclick="this.closest('.card').remove(); updateQCount();" style="background: rgba(255, 91, 91, 0.1); border-radius: 6px; margin-left: 3px; padding: 4px;">×</button>
+                    <div class="flex-gap" style="background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 10px;">
+                        <button type="button" class="btn-icon move-up" title="Yuqoriga" style="padding: 2px;"><i data-lucide="chevron-up" style="width:16px"></i></button>
+                        <button type="button" class="btn-icon move-down" title="Pastga" style="padding: 2px;"><i data-lucide="chevron-down" style="width:16px"></i></button>
+                        <div style="width:1px; height:12px; background:rgba(0,0,0,0.1); margin:0 4px"></div>
+                        <button type="button" class="btn-icon text-danger" onclick="this.closest('.card').remove(); updateNumbers(); updateQCount();" style="padding: 2px;">
+                            <i data-lucide="trash-2" style="width:16px"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="input-group mb-2">
-                    <input type="text" class="q-text cozy-input" value="${d?.text||''}" required placeholder="Savol matni..." style="font-size: 0.9rem; padding: 8px; border-color: rgba(0,0,0,0.08);">
+                
+                <div class="input-group mb-3">
+                    <textarea class="q-text cozy-input" required placeholder="Savol matnini bu yerga kiriting..." style="font-size: 0.9rem; min-height: 50px; padding: 12px; border-radius: 12px; font-weight: 700; line-height:1.4; border-color: rgba(67, 24, 255, 0.15); background: rgba(67, 24, 255, 0.01); resize:none">${d?.text||''}</textarea>
                 </div>
-                <div class="input-group mb-2">
-                    <input type="text" class="q-comment-label cozy-input" value="${d?.qComment||''}" placeholder="Portret uchun savol izohi (masalan: Ijtimoiy status)..." style="font-size: 0.8rem; padding: 6px 10px; background: rgba(5, 205, 153, 0.03); border-color: rgba(5, 205, 153, 0.1);">
-                </div>
-                <div class="grid grid-2 mb-2" style="gap:10px">
+
+                <div class="grid grid-2 mb-3" style="gap:15px">
                     <div class="input-group">
-                        <label class="small text-muted mb-1" style="font-size: 0.7rem;">Savol turi</label>
-                        <select class="q-type cozy-input" style="padding: 6px; font-size: 0.8rem;">
+                        <label class="small text-muted mb-1">Savol Turi</label>
+                        <select class="q-type cozy-input" style="padding: 8px; font-size: 0.8rem; border-radius:10px">
                             <option value="single" ${d?.type==='single'?'selected':''}>Yagona tanlov</option>
-                            <option value="weighted" ${d?.type==='weighted'?'selected':''}>Balli (Varyantli)</option>
-                            <option value="text" ${d?.type==='text'?'selected':''}>Ochiq savol (Text)</option>
+                            <option value="weighted" ${d?.type==='weighted'?'selected':''}>Balli (Psixologik)</option>
+                            <option value="text" ${d?.type==='text'?'selected':''}>Ochiq javob (Text)</option>
                             <option value="date" ${d?.type==='date'?'selected':''}>Sana (Date)</option>
                         </select>
                     </div>
                     <div class="input-group">
-                        <label class="small text-muted mb-1" style="font-size: 0.7rem;">Rasm Tanlash</label>
-                        <select class="q-image cozy-input" style="padding: 6px; font-size: 0.8rem;">
+                        <label class="small text-muted mb-1">Qo'shimcha</label>
+                        <button type="button" class="btn btn-sm btn-outline toggle-adv w-100" style="padding: 8px; border-radius: 10px; font-size:0.75rem">
+                            <i data-lucide="settings" style="width:14px; margin-right:4px"></i> Sozlamalar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="adv-fields animate-fade" style="display:${(d?.qComment || d?.image) ? 'block' : 'none'}; background: rgba(244, 247, 254, 0.8); padding: 15px; border-radius: 14px; margin-bottom: 15px; border: 1px dashed var(--primary-light)">
+                    <div class="input-group mb-3">
+                        <label class="small text-muted mb-1">Profil uchun izoh (Savol kategoriyasi)</label>
+                        <input type="text" class="q-comment-label cozy-input" value="${d?.qComment||''}" placeholder="Masalan: Oilaviy holati" style="font-size: 0.8rem; background:white">
+                    </div>
+                    <div class="input-group">
+                        <label class="small text-muted mb-1">Rasm (Ixtiyoriy)</label>
+                        <select class="q-image cozy-input" style="font-size:0.8rem; background:white">
                             <option value="">Rasm yo'q</option>
                             <option value="Picture1.png" ${d?.image==='Picture1.png'?'selected':''}>Rasm 1</option>
                             <option value="Picture2.png" ${d?.image==='Picture2.png'?'selected':''}>Rasm 2</option>
                         </select>
                     </div>
+                    <div class="q-image-preview mt-3" style="${d?.image ? 'block' : 'none'}; text-align:center">
+                        <img src="${d?.image || ''}" style="max-height: 100px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm)">
+                    </div>
                 </div>
-                <div class="q-image-preview mt-2" style="${d?.image ? 'display:block' : 'display:none'}">
-                    <img src="${d?.image || ''}" style="max-height: 80px; border-radius: 10px; border: 1px solid var(--border);">
+
+                <div class="opt-area" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                
+                <div class="mt-3 flex-center">
+                    <button type="button" class="btn btn-sm btn-outline add-opt" style="border-radius: 10px; padding: 6px 20px; font-size: 0.75rem; background:white; ${(d?.type==='text'||d?.type==='date')?'display:none':''}">
+                        <i data-lucide="plus" style="width:14px; margin-right:4px"></i> Variant Qo'shish
+                    </button>
                 </div>
-                <div class="opt-area" style="display: flex; flex-direction: column; gap: 6px;"></div>
-                <button type="button" class="btn btn-sm btn-outline add-opt mt-2" style="border-radius: 8px; padding: 6px 12px; font-size: 0.8rem; ${(d?.type==='text'||d?.type==='date')?'display:none':''}">+ Variant qo'shish</button>
             `;
             
             qC.appendChild(div);
@@ -339,19 +400,23 @@ export async function renderAdmin(container) {
                 const type = qTypeSelect.value;
                 const odD = document.createElement('div'); 
                 odD.className='animate-fade';
-                odD.style = 'background: #F8FAFC; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.03); margin-bottom: 6px;';
+                odD.style = 'background: white; padding: 10px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.06); margin-bottom: 8px; box-shadow:0 2px 5px rgba(0,0,0,0.02)';
                 
                 odD.innerHTML = `
-                    <div class="flex-gap">
-                        <input type="text" class="o-text cozy-input" value="${od?.text||''}" required placeholder="Variant..." style="background:transparent; border-color:transparent; flex: 1; padding: 4px; font-size: 0.85rem;">
-                        ${type==='weighted' ? `<input type="number" class="o-points cozy-input" value="${od?.points||0}" style="width:60px; text-align:center; padding: 4px; font-size: 0.85rem;" title="Ball">` : ''}
-                        <button type="button" class="btn-icon" onclick="this.parentElement.parentElement.remove()" style="color:var(--text-muted); padding: 2px;">×</button>
+                    <div class="flex-gap mb-2">
+                        <input type="text" class="o-text cozy-input" value="${od?.text||''}" required placeholder="Javob varianti..." style="background:rgba(0,0,0,0.02); border-color:transparent; flex: 1; padding: 8px 12px; font-size: 0.8rem; border-radius:8px">
+                        ${type==='weighted' ? `<input type="number" class="o-points cozy-input" value="${od?.points||0}" style="width:55px; text-align:center; padding: 8px; font-size: 0.8rem; border-radius:8px" title="Ball">` : ''}
+                        <button type="button" class="btn-icon" onclick="this.parentElement.parentElement.remove()" style="color:var(--text-muted); padding: 4px; background:rgba(0,0,0,0.03); border-radius:8px"><i data-lucide="x" style="width:14px"></i></button>
                     </div>
-                    <div class="profile-comment-area" style="padding-top: 4px; margin-top: 4px; border-top: 1px dashed rgba(0,0,0,0.05)">
-                        <input type="text" class="o-comment cozy-input" value="${od?.profileComment||''}" placeholder="Profil uchun izoh (agar tanlansa)..." style="font-size: 0.75rem; padding: 4px 8px; background: rgba(67, 24, 255, 0.03); border-color: rgba(67, 24, 255, 0.1);">
+                    <div class="profile-comment-area" style="padding-top: 6px; margin-top: 6px; border-top: 1px dashed rgba(0,0,0,0.05)">
+                        <div class="flex-gap">
+                            <i data-lucide="user-plus" style="width:14px; color:var(--success); opacity:0.6"></i>
+                            <input type="text" class="o-comment cozy-input" value="${od?.profileComment||''}" placeholder="Profil uchun izoh (Masalan: O'ziga ishongan)" style="font-size: 0.7rem; padding: 6px 10px; background: transparent; border-color: transparent;">
+                        </div>
                     </div>
                 `;
                 oA.appendChild(odD);
+                if (window.lucide) window.lucide.createIcons();
             };
 
             // Re-render options when type changes to maintain data
@@ -393,21 +458,45 @@ export async function renderAdmin(container) {
             // Reordering logic
             div.querySelector('.move-up').onclick = () => {
                 const prev = div.previousElementSibling;
-                if (prev) qC.insertBefore(div, prev);
+                if (prev) { qC.insertBefore(div, prev); updateNumbers(); }
             };
             div.querySelector('.move-down').onclick = () => {
                 const next = div.nextElementSibling;
-                if (next) qC.insertBefore(next, div);
+                if (next) { qC.insertBefore(next, div); updateNumbers(); }
+            };
+
+            // Toggle advanced fields
+            div.querySelector('.toggle-adv').onclick = () => {
+                const adv = div.querySelector('.adv-fields');
+                adv.style.display = adv.style.display === 'none' ? 'block' : 'none';
             };
 
             div.querySelector('.add-opt').onclick = () => addO();
             if(d?.options) d.options.forEach(o=>addO(o)); else if(d?.type!=='text' && d?.type !== 'date') addO();
         };
 
+        const updateNumbers = () => {
+            qC.querySelectorAll(':scope > .card').forEach((c, i) => {
+                c.querySelector('.q-number').innerText = i + 1;
+            });
+        };
+
         const addI = (d=null) => {
-            const div = document.createElement('div'); div.className='flex-gap mb-1';
-            div.innerHTML = `<input type="number" class="i-min" value="${d?.min||0}" placeholder="Min" style="width:60px"><input type="number" class="i-max" value="${d?.max||10}" placeholder="Max" style="width:60px"><input type="text" class="i-text" value="${d?.text||''}" placeholder="Xulosa..." style="flex:1" required><button type="button" class="btn-icon" onclick="this.parentElement.remove()">×</button>`;
+            const div = document.createElement('div'); div.className='animate-fade';
+            div.style = 'background:rgba(0,0,0,0.02); padding:10px; border-radius:12px; margin-bottom:10px';
+            div.innerHTML = `
+                <div class="flex-gap mb-2">
+                    <div class="flex-gap" style="background:white; padding:4px 8px; border-radius:8px; border:1px solid var(--border)">
+                        <input type="number" class="i-min" value="${d?.min||0}" placeholder="Min" style="width:45px; border:none; background:transparent; font-size:0.75rem; text-align:center">
+                        <span style="opacity:0.3">-</span>
+                        <input type="number" class="i-max" value="${d?.max||10}" placeholder="Max" style="width:45px; border:none; background:transparent; font-size:0.75rem; text-align:center">
+                    </div>
+                    <button type="button" class="btn-icon text-danger" onclick="this.closest('.animate-fade').remove()" style="margin-left:auto"><i data-lucide="trash-2" style="width:14px"></i></button>
+                </div>
+                <textarea class="i-text cozy-input" placeholder="Xulosa matni..." style="font-size:0.75rem; min-height:40px; border-radius:8px; background:white" required>${d?.text||''}</textarea>
+            `;
             iC.appendChild(div);
+            if (window.lucide) window.lucide.createIcons();
         };
 
         if(existing?.questions) existing.questions.forEach(q=>addQ(q)); else addQ();
@@ -436,7 +525,7 @@ export async function renderAdmin(container) {
                 };
             });
             
-            const is = Array.from(iC.querySelectorAll('.flex-gap')).map(c=>({ min: parseFloat(c.querySelector('.i-min').value), max: parseFloat(c.querySelector('.i-max').value), text: c.querySelector('.i-text').value }));
+            const is = Array.from(iC.querySelectorAll(':scope > .animate-fade')).map(c=>({ min: parseFloat(c.querySelector('.i-min').value), max: parseFloat(c.querySelector('.i-max').value), text: c.querySelector('.i-text').value }));
             const isProfileData = document.getElementById('t-important').checked;
             const p = { title: document.getElementById('t-title').value, timeLimit: parseInt(document.getElementById('t-time').value), questions: qs, interpretations: is, isProfileData };
             if(existing) {
@@ -1012,7 +1101,10 @@ export async function renderAdmin(container) {
                             <div class="icon-circle primary" style="width:35px; height:35px"><i data-lucide="clipboard-list"></i></div>
                             <h3>${test.title}</h3>
                         </div>
-                        <span class="badge badge-info">${tAs.length} ta guruh</span>
+                        <div class="flex-gap">
+                            <button class="btn btn-sm btn-outline copy-by-tutor" data-tid="${test.id}"><i data-lucide="users"></i> Tutorlar bo'yicha</button>
+                            <span class="badge badge-info">${tAs.length} ta guruh</span>
+                        </div>
                     </div>
                     <div class="table-container">
                         <table>
@@ -1042,6 +1134,75 @@ export async function renderAdmin(container) {
             }).join('');
             
             area.querySelectorAll('.c-link').forEach(b => b.onclick = () => { navigator.clipboard.writeText(b.dataset.link); showToast("Havola nusxalandi", "success"); });
+            
+            area.querySelectorAll('.copy-by-tutor').forEach(b => b.onclick = () => {
+                const tId = b.dataset.tid;
+                const test = tests.find(t => t.id === tId);
+                const tAs = assigns.filter(a => a.testId === tId);
+                
+                // Group by tutor
+                const tutorGroups = {};
+                tAs.forEach(a => {
+                    const g = groups.find(gx => gx.id === a.groupId);
+                    const tutorName = g?.tutor || 'Tutorsiz';
+                    if (!tutorGroups[tutorName]) tutorGroups[tutorName] = [];
+                    tutorGroups[tutorName].push({ groupName: g?.name, link: `${baseUrl}#test/${a.token}` });
+                });
+
+                const tutors = Object.keys(tutorGroups).sort();
+                
+                const html = `
+                    <div class="flex-between mb-3" style="padding: 0 5px;">
+                        <h4 style="margin:0; opacity:0.7">Hamma tutorlar uchun</h4>
+                        <button class="btn btn-primary" id="copy-all-tutors-bulk" style="box-shadow: 0 5px 15px rgba(67, 24, 255, 0.2)">
+                            <i data-lucide="copy" style="width:16px"></i> Barchasini bittada nusxalash
+                        </button>
+                    </div>
+                    <div class="tutor-links-list">
+                        ${tutors.map(tName => `
+                            <div class="card mb-3 p-3" style="border: 1px solid rgba(0,0,0,0.05)">
+                                <div class="flex-between mb-2">
+                                    <h4 style="margin:0">${tName}</h4>
+                                    <button class="btn btn-sm btn-primary copy-tutor-all" data-tutor="${tName}">Barchasini nusxalash</button>
+                                </div>
+                                <div class="small text-muted">
+                                    ${tutorGroups[tName].map(tg => `<div>• ${tg.groupName}: ${tg.link}</div>`).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+                const modal = showModal(`${test.title} - Tutorlar bo'yicha`, html, (m) => {
+                    return true; // Close on Yopish click
+                }, "Yopish");
+
+                modal.querySelectorAll('.copy-tutor-all').forEach(btn => {
+                    btn.onclick = () => {
+                        const tName = btn.dataset.tutor;
+                        const tLinks = tutorGroups[tName];
+                        const message = `Assalomu alaykum ${tName},\n${test.title} testi uchun guruhlaringiz havolalari:\n\n${tLinks.map(tg => `${tg.groupName}: ${tg.link}`).join('\n')}`;
+                        navigator.clipboard.writeText(message);
+                        showToast(`${tName} uchun havolalar nusxalandi`, "success");
+                    };
+                });
+
+                modal.querySelector('#copy-all-tutors-bulk').onclick = () => {
+                    let fullMessage = `Assalomu alaykum hurmatli tutorlar,\n${test.title} testi uchun guruhlar havolalari:\n\n`;
+                    
+                    tutors.forEach((tName, index) => {
+                        const tLinks = tutorGroups[tName];
+                        fullMessage += `${index + 1}. ${tName}:\n`;
+                        tLinks.forEach(tg => {
+                            fullMessage += `• ${tg.groupName}: ${tg.link}\n`;
+                        });
+                        fullMessage += `\n`;
+                    });
+                    
+                    navigator.clipboard.writeText(fullMessage.trim());
+                    showToast("Barcha tutorlar uchun havolalar nusxalandi", "success");
+                };
+            });
             area.querySelectorAll('.tog-a').forEach(b => b.onchange = async (e) => { await updateDoc(doc(db,"assignments",b.dataset.id), { active: e.target.checked }); showToast("Holat yangilandi", "success"); });
             area.querySelectorAll('.del-a').forEach(b => b.onclick = async () => { if(confirm("O'chirilsinmi?")) { await deleteDoc(doc(db,"assignments",b.dataset.id)); clearCache(); renderTab(); } });
             
@@ -1277,25 +1438,109 @@ export async function renderAdmin(container) {
                             </div>
                         </div>
                     </div>
-
-                    ${subs.find(s => s.isProfileData) || g.students.find(s => s.name === name)?.profileData ? `
-                    <div class="card mt-4 animate-fade" style="border: 2px solid var(--primary); background: white; position:relative; overflow:hidden">
-                        <div style="position:absolute; top:20px; right:20px; opacity:0.05; font-size:5rem"><i data-lucide="file-text"></i></div>
+                    ${subs.find(s => s.isProfileData) || g.students.find(s => s.name === name)?.portrait || g.students.find(s => s.name === name)?.profileData ? `
+                    <div class="card mt-4 animate-fade" style="border: 2px solid var(--primary); background: white; position:relative; overflow:hidden" id="portrait-card">
+                        <div style="position:absolute; top:20px; right:20px; opacity:0.05; font-size:5rem"><i data-lucide="user-check"></i></div>
+                        
                         <div class="flex-between mb-4 pb-2 border-bottom" style="border-color: rgba(67, 24, 255, 0.1) !important">
-                            <h3 style="color:var(--primary); font-weight:800; letter-spacing:1px">IJTIMOIY-PSIXOLOGIK PORTRET</h3>
-                            <div class="badge badge-primary">Profil ma'lumotlari</div>
+                            <h3 style="color:var(--primary); font-weight:800; letter-spacing:1px">TALABA PASPORTI VA PSIXOLOGIK PORTRETI</h3>
+                            <div class="flex-gap">
+                                <button class="btn btn-sm btn-outline" id="btn-edit-portrait"><i data-lucide="edit"></i> Tahrirlash</button>
+                                <button class="btn btn-sm btn-primary" id="btn-save-portrait" style="display:none"><i data-lucide="save"></i> Saqlash</button>
+                            </div>
                         </div>
-                        <div class="grid grid-2" style="gap:25px 40px">
+
+                        <div id="portrait-grid">
                             ${(() => {
                                 const studentObj = g.students.find(s => s.name === name);
-                                const profile = studentObj?.profileData || {};
-                                return Object.entries(profile).map(([q, a]) => `
-                                    <div class="profile-field-box">
-                                        <label style="display:block; font-size:0.7rem; color:var(--text-muted); font-weight:800; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px; opacity:0.6">${q}</label>
-                                        <div style="font-weight:700; font-size:1.05rem; padding:5px 0; border-bottom:1.5px solid rgba(67, 24, 255, 0.08); color:var(--text)">${a || '---'}</div>
-                                    </div>
-                                `).join('');
-                            })()}
+                                const profileSub = subs.find(s => s.isProfileData);
+                                const rawPortrait = profileSub?.portraitData || studentObj?.portrait || studentObj?.profileData || {};
+                                        // Convert to array if it's an object
+                                const portraitData = (Array.isArray(rawPortrait) ? rawPortrait : Object.entries(rawPortrait).map(([label, value]) => ({ label, value })))
+                                    .filter(d => d.value && d.value !== "---");
+
+                                // Master template for the requested sequence
+                                const masterTemplate = [
+                                    { category: "SHAXSIY MA'LUMOTLAR", fields: [
+                                        "F.I.Sh", "Fakultet, guruh, kurs", "Tuģilgan yili, oyi, kuni", "Doimiy yashash manzili", 
+                                        "Oilaviy ahvoli", "Otasi", "Onasi", "Yashash sharoiti", "Salomatligi to'g'risida ma'mulotlar", 
+                                        "Fanlarni o'zlashtirishi", "Xarakterining asosiy xususiyatlari", "Oilaviy munosabatlar xususiyatlari", 
+                                        "Izoh", "Kursdoshlari bilan o'zaro munosabati", "Profilaktika va korreksiya uchun tavsiyalar"
+                                    ]},
+                                    { category: "IJTIMOIY MOSLASHUV", fields: [
+                                        "Tengdoshlari bilan o'zaro munosabati", "O'qituvchilar bilan o'zaro munosabati", "Muloqotchanligi"
+                                    ]},
+                                    { category: "INDIVIDUAL-PSIXOLOGIK XUSUSIYATLAR", fields: [
+                                        "Ajralib turadigan charakter xususiyatlari", "O'ziga beradigan bahosi", "Xavotirlanuvchanligi", 
+                                        "Agressivlik darajasi", "Irodaviy xususiyatlari", "Diqqati"
+                                    ]},
+                                    { category: "INTELLEKTUAL RIVOJLANISH", fields: [
+                                        "Tafakkur xususiyatlari", "Intellektual salohiyati"
+                                    ]},
+                                    { category: "QIZIQISHLARI", fields: [
+                                        "Hobbisi", "Sport turi", "San'at turi", "Erishgan yutuqlari", "Bo'sh vaqtdan foydalanish"
+                                    ]}
+                                ];
+
+                                const usedIndices = new Set();
+                                const sectionsHtml = masterTemplate.map(section => {
+                                    const sectionItems = [];
+                                    section.fields.forEach(fLabel => {
+                                        const foundIdx = portraitData.findIndex((d, idx) => !usedIndices.has(idx) && d.label.toLowerCase().includes(fLabel.toLowerCase()));
+                                        if (foundIdx > -1) {
+                                            sectionItems.push(portraitData[foundIdx]);
+                                            usedIndices.add(foundIdx);
+                                        }
+                                    });
+
+                                    if (sectionItems.length === 0) return "";
+
+                                    return `
+                                        <div class="mt-4 mb-3">
+                                            <h5 style="color:var(--text-muted); font-size:0.7rem; font-weight:800; letter-spacing:2px; text-transform:uppercase; border-left:3px solid var(--primary); padding-left:10px">${section.category}</h5>
+                                        </div>
+                                        <div class="grid grid-2" style="gap:20px">
+                                            ${sectionItems.map(item => `
+                                                <div class="profile-field-box animate-fade" style="background: rgba(67, 24, 255, 0.02); padding: 12px 18px; border-radius: 16px; border: 1px solid rgba(67, 24, 255, 0.05); position: relative; overflow: hidden;">
+                                                    <div style="position:absolute; top:0; left:0; width:3px; height:100%; background:var(--primary); opacity:0.2"></div>
+                                                    <div class="flex-between mb-1">
+                                                        <input type="text" class="p-label-edit" value="${item.label}" style="display:none; font-size:0.7rem; font-weight:800; text-transform:uppercase; border:none; background:transparent; color:var(--text-muted); width:100%">
+                                                        <label class="p-label-view" style="display:block; font-size:0.7rem; color:var(--text-muted); font-weight:800; text-transform:uppercase; letter-spacing:0.5px; opacity:0.7">${item.label}</label>
+                                                        <button class="btn-icon p-del-btn" style="display:none; color:red; padding:0">×</button>
+                                                    </div>
+                                                    <div class="p-value-view" style="font-weight:700; font-size:1.05rem; color:var(--text); line-height: 1.3;">${item.value || '---'}</div>
+                                                    <textarea class="p-value-edit cozy-input" style="display:none; font-weight:700; font-size:0.95rem; min-height:35px; padding:6px; border-radius:8px">${item.value || ''}</textarea>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    `;
+                                }).join('');
+
+                                const remainingItems = portraitData.filter((_, idx) => !usedIndices.has(idx));
+                                const customHtml = remainingItems.length > 0 ? `
+                                    <div class="mt-4 pt-3 border-top" id="custom-fields-area">
+                                        <h5 style="color:var(--text-muted); font-size:0.7rem; font-weight:800; letter-spacing:2px; text-transform:uppercase; margin-bottom:15px">QO'SHIMCHA MA'LUMOTLAR</h5>
+                                        <div class="grid grid-2" id="custom-portrait-grid" style="gap:20px">
+                                            ${remainingItems.map(item => `
+                                                <div class="profile-field-box animate-fade" style="background: rgba(5, 205, 153, 0.02); padding: 12px 18px; border-radius: 16px; border: 1px solid rgba(5, 205, 153, 0.05); position: relative; overflow: hidden;">
+                                                    <div style="position:absolute; top:0; left:0; width:3px; height:100%; background:var(--success); opacity:0.2"></div>
+                                                    <div class="flex-between mb-1">
+                                                        <input type="text" class="p-label-edit" value="${item.label}" style="display:none; font-size:0.7rem; font-weight:800; text-transform:uppercase; border:none; background:transparent; color:var(--text-muted); width:100%">
+                                                        <label class="p-label-view" style="display:block; font-size:0.7rem; color:var(--text-muted); font-weight:800; text-transform:uppercase; letter-spacing:0.5px; opacity:0.7">${item.label}</label>
+                                                        <button class="btn-icon p-del-btn" style="display:none; color:red; padding:0">×</button>
+                                                    </div>
+                                                    <div class="p-value-view" style="font-weight:700; font-size:1.05rem; color:var(--text); line-height: 1.3;">${item.value || '---'}</div>
+                                                    <textarea class="p-value-edit cozy-input" style="display:none; font-weight:700; font-size:0.95rem; min-height:35px; padding:6px; border-radius:8px">${item.value || ''}</textarea>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>` : "";
+
+                                return sectionsHtml + customHtml;
+                            })() }
+                        </div>
+                        <div id="portrait-actions" style="display:none" class="mt-4 flex-center">
+                            <button class="btn btn-sm btn-outline" id="btn-add-p-field">+ Yangi ixtiyoriy maydon</button>
                         </div>
                     </div>
                     ` : ''}
@@ -1380,12 +1625,21 @@ export async function renderAdmin(container) {
                 const detailHtml = `
                     <div class="detail-list" style="max-height: 500px; overflow-y: auto; padding: 10px">
                         ${sub.portraitData ? 
-                            Object.entries(sub.portraitData).map(([q, a], i) => `
-                                <div class="mb-3 p-3" style="background:rgba(67, 24, 255, 0.03); border-radius:15px; text-align:left">
-                                    <p class="small text-primary font-weight-800 mb-1">${q}</p>
-                                    <p style="font-weight:700; font-size:1rem; line-height:1.3; color:var(--text)">${a}</p>
-                                </div>
-                            `).join('')
+                            (Array.isArray(sub.portraitData) ? 
+                                sub.portraitData.map((item, i) => `
+                                    <div class="mb-3 p-3" style="background:rgba(67, 24, 255, 0.03); border-radius:15px; text-align:left">
+                                        <p class="small text-primary font-weight-800 mb-1">${item.label}</p>
+                                        <p style="font-weight:700; font-size:1rem; line-height:1.3; color:var(--text)">${item.value || '---'}</p>
+                                    </div>
+                                `).join('')
+                                :
+                                Object.entries(sub.portraitData).map(([q, a], i) => `
+                                    <div class="mb-3 p-3" style="background:rgba(67, 24, 255, 0.03); border-radius:15px; text-align:left">
+                                        <p class="small text-primary font-weight-800 mb-1">${q}</p>
+                                        <p style="font-weight:700; font-size:1rem; line-height:1.3; color:var(--text)">${a}</p>
+                                    </div>
+                                `).join('')
+                            )
                         : 
                             test.questions.map((q, i) => `
                                 <div class="mb-3 p-3" style="background:rgba(67, 24, 255, 0.03); border-radius:15px; text-align:left">
@@ -1399,6 +1653,79 @@ export async function renderAdmin(container) {
                 showModal(`${sub.testTitle}`, detailHtml, () => true);
             };
         });
+
+        // --- Portrait Editing Logic ---
+        const pCard = document.getElementById('portrait-card');
+        if (pCard) {
+            const btnEdit = document.getElementById('btn-edit-portrait');
+            const btnSave = document.getElementById('btn-save-portrait');
+            const pActions = document.getElementById('portrait-actions');
+            const pGrid = document.getElementById('portrait-grid');
+
+            btnEdit.onclick = () => {
+                const isEditing = btnEdit.innerText.includes("Tahrirlash");
+                btnEdit.innerHTML = isEditing ? '<i data-lucide="x-circle"></i> Bekor qilish' : '<i data-lucide="edit"></i> Tahrirlash';
+                btnSave.style.display = isEditing ? 'block' : 'none';
+                pActions.style.display = isEditing ? 'flex' : 'none';
+                
+                pCard.querySelectorAll('.p-label-view, .p-value-view').forEach(el => el.style.display = isEditing ? 'none' : 'block');
+                pCard.querySelectorAll('.p-label-edit, .p-value-edit, .p-del-btn').forEach(el => el.style.display = isEditing ? 'block' : 'none');
+                if(window.lucide) window.lucide.createIcons();
+            };
+
+            document.getElementById('btn-add-p-field').onclick = () => {
+                const customGrid = document.getElementById('custom-portrait-grid');
+                const div = document.createElement('div');
+                div.className = 'profile-field-box animate-fade';
+                div.style = 'background: rgba(5, 205, 153, 0.05); padding: 12px 18px; border-radius: 16px; border: 1px solid var(--success); position: relative; overflow: hidden;';
+                div.innerHTML = `
+                    <div style="position:absolute; top:0; left:0; width:3px; height:100%; background:var(--success)"></div>
+                    <div class="flex-between mb-1">
+                        <input type="text" class="p-label-edit" value="" placeholder="YANGI MAYDON" style="font-size:0.7rem; font-weight:800; text-transform:uppercase; border:none; background:transparent; color:var(--success); width:100%">
+                        <button class="btn-icon p-del-btn" style="color:red; padding:0">×</button>
+                    </div>
+                    <textarea class="p-value-edit cozy-input" placeholder="Javobni kiriting..." style="font-weight:700; font-size:0.95rem; min-height:35px; padding:6px; border-radius:8px"></textarea>
+                `;
+                customGrid.appendChild(div);
+                div.querySelector('.p-del-btn').onclick = () => div.remove();
+            };
+
+            pCard.querySelectorAll('.p-del-btn').forEach(btn => btn.onclick = () => btn.closest('.profile-field-box').remove());
+
+            btnSave.onclick = async () => {
+                btnSave.disabled = true;
+                const oldText = btnSave.innerHTML;
+                btnSave.innerText = "Saqlanmoqda...";
+                
+                const newData = Array.from(pGrid.querySelectorAll('.profile-field-box')).map(box => ({
+                    label: box.querySelector('.p-label-edit').value,
+                    value: box.querySelector('.p-value-edit').value
+                }));
+
+                try {
+                    const studentIdx = g.students.findIndex(s => s.name === name);
+                    if (studentIdx > -1) {
+                        g.students[studentIdx].portrait = newData;
+                        await updateDoc(doc(db, "groups", g.id), { students: g.students });
+                        
+                        // Also update the latest profile submission if it exists
+                        const profileSub = subs.find(s => s.isProfileData);
+                        if (profileSub) {
+                            await updateDoc(doc(db, "assignments", profileSub.id), { portraitData: newData });
+                        }
+                        
+                        showToast("Portret saqlandi", "success");
+                        renderTab(); // Refresh to show new data
+                    }
+                } catch (err) {
+                    showToast("Saqlashda xato: " + err.message, "error");
+                } finally {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = oldText;
+                }
+            };
+        }
+
         if(window.lucide) window.lucide.createIcons();
         } catch (error) {
             console.error("Profile error:", error);

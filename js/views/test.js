@@ -112,45 +112,80 @@ export async function renderTest(container, params) {
                 .ms-progress-bg { height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
                 .ms-progress-fill { height: 100%; background: var(--ms-primary); border-radius: 10px; transition: width 0.3s; box-shadow: 0 0 10px var(--ms-primary); }
 
-                /* Question Card - SOLID WHITE */
                 .ms-question-card {
                     background: white;
-                    border-radius: 30px;
-                    padding: 35px 25px;
+                    border-radius: 24px;
+                    padding: 20px;
                     color: #1B2559;
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+                    box-shadow: 0 25px 60px rgba(0,0,0,0.18), 0 5px 15px rgba(0,0,0,0.05);
                     width: 100%;
-                    max-width: 460px;
+                    max-width: 440px;
                     margin: auto;
                     display: flex;
                     flex-direction: column;
                     z-index: 100;
+                    border: 1px solid rgba(0,0,0,0.03);
+                    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                 }
-                .ms-q-title { font-size: 1.25rem; font-weight: 800; line-height: 1.4; margin-bottom: 25px; }
+                .ms-q-title { font-size: 0.95rem; font-weight: 800; line-height: 1.4; margin-bottom: 15px; }
+
+                /* Extra Info Toggle */
+                .ms-extra-toggle {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    padding: 8px 15px;
+                    background: linear-gradient(135deg, rgba(67, 24, 255, 0.04), rgba(45, 212, 191, 0.04));
+                    color: #4318FF;
+                    border-radius: 14px;
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    cursor: pointer;
+                    margin-bottom: 15px;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    border: 1px solid rgba(67, 24, 255, 0.08);
+                }
+                .ms-extra-toggle:hover { background: rgba(67, 24, 255, 0.1); }
+                .ms-extra-content { display: none; margin-bottom: 15px; }
+                .ms-extra-content.show { display: block; animation: slideDown 0.3s ease-out; }
+                @keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+
+                .ms-q-comment {
+                    padding: 10px 12px;
+                    background: #F8FAFC;
+                    border-left: 3px solid var(--ms-primary);
+                    border-radius: 8px;
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    color: #64748B;
+                    margin-bottom: 10px;
+                }
 
                 /* Options */
                 .ms-option-item {
                     display: flex;
                     align-items: center;
-                    gap: 15px;
-                    padding: 12px 15px;
-                    border-radius: 18px;
-                    margin-bottom: 12px;
+                    gap: 10px;
+                    padding: 8px 12px;
+                    border-radius: 16px;
+                    margin-bottom: 8px;
                     cursor: pointer;
-                    transition: transform 0.2s;
-                    border: 1px solid transparent;
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                    border: 1.5px solid transparent;
+                    background: rgba(0,0,0,0.02);
                 }
                 .ms-option-item:active { transform: scale(0.98); }
                 .ms-letter-box {
-                    width: 38px; height: 38px;
+                    width: 32px; height: 32px;
                     border-radius: 50%;
                     display: flex; align-items: center; justify-content: center;
-                    font-weight: 800; font-size: 0.9rem;
+                    font-weight: 800; font-size: 0.8rem;
                     flex-shrink: 0;
                     color: #1B2559;
                     background: rgba(0,0,0,0.05);
                 }
-                .ms-opt-text { font-weight: 700; font-size: 0.9rem; line-height: 1.3; }
+                .ms-opt-text { font-weight: 700; font-size: 0.78rem; line-height: 1.3; }
 
                 .ms-opt-0 { background: var(--grad-a); }
                 .ms-opt-1 { background: var(--grad-b); }
@@ -311,8 +346,17 @@ function renderQuestion(container) {
                 </div>
 
                 <div class="ms-question-card animate-scale">
-                    ${q.image ? `<img src="${q.image}" class="ms-q-image" style="width:100%; border-radius:15px; margin-bottom:15px; object-fit:contain; max-height:400px; background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.05)">` : ''}
                     <h2 class="ms-q-title">${q.text}</h2>
+
+                    ${(q.image || q.qComment) ? `
+                        <div class="ms-extra-toggle" id="toggle-extra">
+                            <i data-lucide="info" style="width:14px"></i> Muhim ma'lumot
+                        </div>
+                        <div class="ms-extra-content" id="extra-content">
+                            ${q.image ? `<img src="${q.image}" class="ms-q-image" style="width:100%; border-radius:12px; margin-bottom:10px; object-fit:contain; max-height:300px; background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.05)">` : ''}
+                            ${q.qComment ? `<div class="ms-q-comment">${q.qComment}</div>` : ''}
+                        </div>
+                    ` : ''}
 
                     <div class="ms-options">
                         ${q.type === 'text' ? `<textarea id="text-ans" placeholder="Javobingizni yozing..." class="ms-input" style="height:150px">${answers[currentQ] || ''}</textarea>` :
@@ -351,6 +395,18 @@ function renderQuestion(container) {
     if (window.lucide) window.lucide.createIcons();
 
     // Interaction
+    const toggleBtn = container.querySelector('#toggle-extra');
+    if (toggleBtn) {
+        toggleBtn.onclick = () => {
+            const content = container.querySelector('#extra-content');
+            content.classList.toggle('show');
+            toggleBtn.innerHTML = content.classList.contains('show') ? 
+                `<i data-lucide="eye-off" style="width:14px"></i> Yopish` : 
+                `<i data-lucide="info" style="width:14px"></i> Muhim ma'lumot`;
+            if (window.lucide) window.lucide.createIcons();
+        };
+    }
+
     container.querySelectorAll('.ms-option-item').forEach(btn => {
         btn.onclick = () => {
             answers[currentQ] = btn.dataset.text;
@@ -402,7 +458,7 @@ async function finishTest(container) {
             if (match) conclusion = match.text;
         }
 
-        const portraitData = {};
+        const portraitData = [];
         test.questions.forEach((q, i) => {
             let finalAns = answers[i] || '---';
             if ((q.type === 'single' || q.type === 'weighted') && q.options) {
@@ -410,7 +466,7 @@ async function finishTest(container) {
                 if (opt && opt.profileComment) finalAns = opt.profileComment;
             }
             const label = q.qComment || q.text;
-            portraitData[label] = finalAns;
+            portraitData.push({ label: label, value: finalAns });
         });
 
         // 2. Save Submission
@@ -441,9 +497,7 @@ async function finishTest(container) {
                     // Add summary of this test to profile
                     profileData[test.title] = `${score} ball: ${conclusion}`;
                     
-                    // Add portrait details
-                    Object.assign(profileData, portraitData);
-
+                    data.students[sIdx].portrait = portraitData; 
                     data.students[sIdx].profileData = profileData;
                     await updateDoc(groupRef, { students: data.students });
                 }
