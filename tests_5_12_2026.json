@@ -1,0 +1,1509 @@
+[
+  {
+    "id": "ahx40oVvXIuDl4AO7BWS",
+    "title": "So'rovnoma",
+    "questions": [
+      {
+        "text": "Eng asosiysi din menga g'amgin va baxtsiz damlarda ruhiy taskin bag'ishlaydi.",
+        "image": "",
+        "options": [
+          {
+            "text": "Mutlaqo qo'shilmayman",
+            "points": 1,
+            "profileComment": "Dindan tasalli izlamaydi"
+          },
+          {
+            "points": 2,
+            "text": "Qisman qo'shilmayman",
+            "profileComment": "Dindan tasalli izlashga moyilligi past"
+          },
+          {
+            "profileComment": "Dindan tasalli izlashga moyil",
+            "points": 3,
+            "text": "Qisman qo'shilaman"
+          },
+          {
+            "profileComment": "Din u uchun asosan ruhiy taskin manbai",
+            "text": "To'liq qo'shilaman",
+            "points": 4
+          }
+        ],
+        "type": "weighted",
+        "qComment": "Tashqi (E)"
+      },
+      {
+        "type": "weighted",
+        "qComment": "Tashqi (E)",
+        "text": "Men masjidga (cherkovga) qatnayman, bu menga jamiyatdagi mavqeimni mustahkamlashimga yordam beradi.",
+        "image": "",
+        "options": [
+          {
+            "text": "Mutlaqo noto'g'ri",
+            "points": 1,
+            "profileComment": "Ijtimoiy mavqe uchun dinga intilmaydi"
+          },
+          {
+            "text": "Qisman noto'g'ri",
+            "points": 2,
+            "profileComment": "Ijtimoiy maqsadlar uchun dindan foydalanmaydi"
+          },
+          {
+            "profileComment": "Ijtimoiy mavqe uchun dindan foydalanishga moyil",
+            "points": 3,
+            "text": "Qisman to'g'ri"
+          },
+          {
+            "profileComment": "Dinni ijtimoiy mavqe vositasi deb biladi",
+            "points": 4,
+            "text": "Mutlaqo to'g'ri"
+          }
+        ]
+      },
+      {
+        "text": "Ibodatdan maqsad – hayotiy xotirjamlik va baxtli hayotni ta'minlash.",
+        "options": [
+          {
+            "text": "Mutlaqo qo'shilmayman",
+            "points": 1,
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "Qisman qo'shilmayman",
+            "points": 2
+          },
+          {
+            "profileComment": "",
+            "points": 3,
+            "text": "Qisman qo'shilaman"
+          },
+          {
+            "profileComment": "",
+            "points": 4,
+            "text": "To'liq qo'shilaman"
+          }
+        ],
+        "image": "",
+        "type": "weighted",
+        "qComment": "Tashqi (E)"
+      },
+      {
+        "options": [
+          {
+            "profileComment": "",
+            "points": 1,
+            "text": "Mutlaqo qo'shilmayman"
+          },
+          {
+            "points": 2,
+            "text": "Qisman qo'shilmayman",
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "Qisman qo'shilaman",
+            "points": 3
+          },
+          {
+            "profileComment": "",
+            "points": 4,
+            "text": "To'liq qo'shilaman"
+          }
+        ],
+        "image": "",
+        "text": "Men axloqiy hayot kechirar ekanman, nimaga e'tiqod qilishim unchalik muhim emas.",
+        "type": "weighted",
+        "qComment": "Tashqi (E)"
+      },
+      {
+        "type": "weighted",
+        "qComment": "Tashqi (E)",
+        "text": "Garchi dindor bo'lsam-da, diniy mulohazalarning kundalik turmushimga ta'sir qilishiga yo'l qo'ymaslikka intilaman.",
+        "options": [
+          {
+            "profileComment": "",
+            "text": "Mutlaqo noto'g'ri",
+            "points": 1
+          },
+          {
+            "points": 2,
+            "text": "Qisman noto'g'ri",
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "Qisman to'g'ri",
+            "points": 3
+          },
+          {
+            "points": 4,
+            "text": "Mutlaqo to'g'ri",
+            "profileComment": ""
+          }
+        ],
+        "image": ""
+      },
+      {
+        "type": "weighted",
+        "qComment": "Tashqi (E)",
+        "image": "",
+        "options": [
+          {
+            "text": "Mutlaqo qo'shilmayman",
+            "points": 1,
+            "profileComment": ""
+          },
+          {
+            "text": "Qisman qo'shilmayman",
+            "points": 2,
+            "profileComment": ""
+          },
+          {
+            "text": "Qisman qo'shilaman",
+            "points": 3,
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "To'liq qo'shilaman",
+            "points": 4
+          }
+        ],
+        "text": "Masjidga borishim atrofdagilarning yaxshi munosabatiga bog'lanib qolganligim bo'lishi mumkin."
+      },
+      {
+        "text": "Men dindor inson bo'lsam-da, hayotimda ko'pgina jiddiy narsalar borligini his qilaman.",
+        "options": [
+          {
+            "profileComment": "",
+            "text": "Mutlaqo qo'shilmayman",
+            "points": 1
+          },
+          {
+            "profileComment": "",
+            "points": 2,
+            "text": "Qisman qo'shilmayman"
+          },
+          {
+            "profileComment": "",
+            "text": "Qisman qo'shilaman",
+            "points": 3
+          },
+          {
+            "points": 4,
+            "text": "To'liq qo'shilaman",
+            "profileComment": ""
+          }
+        ],
+        "image": "",
+        "type": "weighted",
+        "qComment": "Tashqi (E)"
+      },
+      {
+        "type": "weighted",
+        "qComment": "Tashqi (E)",
+        "image": "",
+        "options": [
+          {
+            "profileComment": "",
+            "points": 1,
+            "text": "Mutlaqo noto'g'ri"
+          },
+          {
+            "profileComment": "",
+            "points": 2,
+            "text": "Qisman noto'g'ri"
+          },
+          {
+            "points": 3,
+            "text": "Qisman to'g'ri",
+            "profileComment": ""
+          },
+          {
+            "text": "Mutlaqo to'g'ri",
+            "points": 4,
+            "profileComment": ""
+          }
+        ],
+        "text": "Mening ibodat qilishga o'rgatganliklari tufayli unga amal qilaman."
+      },
+      {
+        "image": "",
+        "options": [
+          {
+            "points": 1,
+            "text": "Mutlaqo noto'g'ri",
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "points": 2,
+            "text": "Qisman noto'g'ri"
+          },
+          {
+            "points": 3,
+            "text": "Qisman to'g'ri",
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "points": 4,
+            "text": "Mutlaqo to'g'ri"
+          }
+        ],
+        "text": "Meni dinga qiziqishimning asosiy sababi, masjid inson xotirjamlikni topishining eng maqbul joyi deb menga taklif etganliklaridir.",
+        "type": "weighted",
+        "qComment": "Tashqi (E)"
+      },
+      {
+        "options": [
+          {
+            "points": 1,
+            "text": "Mutlaqo qo'shilmayman",
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "points": 2,
+            "text": "Qisman qo'shilmayman"
+          },
+          {
+            "text": "Qisman qo'shilaman",
+            "points": 3,
+            "profileComment": ""
+          },
+          {
+            "text": "To'liq qo'shilaman",
+            "points": 4,
+            "profileComment": ""
+          }
+        ],
+        "image": "",
+        "text": "Ba'zan menga sotsial va iqtisodiy farovonligimni ta'minlash uchun diniy e'tiqodni namoyon qilishimga to'g'ri keladi.",
+        "type": "weighted",
+        "qComment": "Tashqi (E)"
+      },
+      {
+        "options": [
+          {
+            "text": "Mutlaqo qo'shilmayman",
+            "points": 1,
+            "profileComment": ""
+          },
+          {
+            "points": 2,
+            "text": "Qisman qo'shilmayman",
+            "profileComment": ""
+          },
+          {
+            "points": 3,
+            "text": "Qisman qo'shilaman",
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "To'liq qo'shilaman",
+            "points": 4
+          }
+        ],
+        "image": "",
+        "text": "Ibodatning asosiy vazifasi ruhiy xotirjamlik va himoyalashni ta'minlash.",
+        "type": "weighted",
+        "qComment": "Tashqi (E)"
+      },
+      {
+        "type": "weighted",
+        "qComment": "Ichki (I)",
+        "text": "Men dinni barcha kundalik ishlarimga to'liq singdirishga intilaman.",
+        "options": [
+          {
+            "profileComment": "Din hayotiga to'liq singgan",
+            "text": "To'liq qo'shilaman",
+            "points": 4
+          },
+          {
+            "text": "Qisman qo'shilaman",
+            "points": 3,
+            "profileComment": "Diniy qadriyatlar hayotida muhim o'rin tutadi"
+          },
+          {
+            "profileComment": "Diniy qadriyatlar hayotida unchalik muhim emas",
+            "text": "Qisman qo'shilmayman",
+            "points": 2
+          },
+          {
+            "profileComment": "Din hayotida deyarli o'rin tutmaydi",
+            "text": "Mutlaqo qo'shilmayman",
+            "points": 1
+          }
+        ],
+        "image": ""
+      },
+      {
+        "options": [
+          {
+            "points": 4,
+            "text": "Mutlaqo to'g'ri",
+            "profileComment": ""
+          },
+          {
+            "text": "Qisman to'g'ri",
+            "points": 3,
+            "profileComment": ""
+          },
+          {
+            "text": "Qisman noto'g'ri",
+            "points": 2,
+            "profileComment": ""
+          },
+          {
+            "text": "Mutlaqo noto'g'ri",
+            "points": 1,
+            "profileComment": ""
+          }
+        ],
+        "image": "",
+        "text": "Men ko'pincha Alloh qudratining ta'sirini anglayman.",
+        "type": "weighted",
+        "qComment": "Ichki (I)"
+      },
+      {
+        "options": [
+          {
+            "profileComment": "",
+            "points": 4,
+            "text": "Mutlaqo to'g'ri"
+          },
+          {
+            "profileComment": "",
+            "points": 3,
+            "text": "Qisman to'g'ri"
+          },
+          {
+            "points": 2,
+            "text": "Qisman noto'g'ri",
+            "profileComment": ""
+          },
+          {
+            "text": "Mutlaqo noto'g'ri",
+            "points": 1,
+            "profileComment": ""
+          }
+        ],
+        "image": "",
+        "text": "Mening hayotiy falsafamni haqiqatdan diniy e'tiqodlarim belgilaydi.",
+        "type": "weighted",
+        "qComment": "Ichki (I)"
+      },
+      {
+        "text": "Men ibodat qilishda duolarimning yanada ma'noli va hissiyotli bo'lishi uchun mutlaqo yolg'iz qolaman.",
+        "options": [
+          {
+            "profileComment": "",
+            "points": 4,
+            "text": "Deyarli doimo"
+          },
+          {
+            "points": 3,
+            "text": "Odatda",
+            "profileComment": ""
+          },
+          {
+            "points": 2,
+            "text": "Ba'zan",
+            "profileComment": ""
+          },
+          {
+            "points": 1,
+            "text": "Deyarli hech qachon",
+            "profileComment": ""
+          }
+        ],
+        "image": "",
+        "type": "weighted",
+        "qComment": "Ichki (I)"
+      },
+      {
+        "text": "Agar noqulay holatlar va vaziyatlar bo'lmasa, masjidga boraman.",
+        "options": [
+          {
+            "points": 4,
+            "text": "Haftasida bir martadan ko'proq",
+            "profileComment": ""
+          },
+          {
+            "text": "Taxminan haftasida bir marta",
+            "points": 3,
+            "profileComment": ""
+          },
+          {
+            "points": 2,
+            "text": "Oyida ikki-uch marta",
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "Oyida bir martadan kam",
+            "points": 1
+          }
+        ],
+        "image": "",
+        "type": "weighted",
+        "qComment": "Tashqi (E)"
+      },
+      {
+        "options": [
+          {
+            "profileComment": "",
+            "points": 4,
+            "text": "Men jamoada bo'lishni ma'qul hisoblayman"
+          },
+          {
+            "profileComment": "",
+            "points": 3,
+            "text": "Chamasi men, jamoa bilan birga bo'lishni afzal bilaman"
+          },
+          {
+            "profileComment": "",
+            "text": "Chamasi men, o'rtoqlarim bilan birga bo'lishni afzal bilaman",
+            "points": 2
+          },
+          {
+            "text": "Men o'rtoqlarim bilan birga bo'lishni afzal bilaman",
+            "points": 1,
+            "profileComment": ""
+          }
+        ],
+        "image": "",
+        "text": "Agar masjiddagilar bilan ibodat qilishga to'g'ri kelsa...",
+        "type": "weighted",
+        "qComment": "Tashqi (E)"
+      },
+      {
+        "image": "",
+        "options": [
+          {
+            "text": "To'liq qo'shilaman",
+            "points": 4,
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "Qisman qo'shilaman",
+            "points": 3
+          },
+          {
+            "text": "Qisman qo'shilmayman",
+            "points": 2,
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "To'liq qo'shilmayman",
+            "points": 1
+          }
+        ],
+        "text": "Din men uchun hayotimga tegishli ko'pgina masalalarga javob berishi bilan ahamiyatli.",
+        "type": "weighted",
+        "qComment": "Ichki (I)"
+      },
+      {
+        "type": "weighted",
+        "qComment": "Ichki (I)",
+        "text": "E'tiqodimga doir kitobni o'qiyman.",
+        "image": "",
+        "options": [
+          {
+            "profileComment": "",
+            "text": "Ko'pincha",
+            "points": 4
+          },
+          {
+            "profileComment": "",
+            "text": "Vaqti vaqti bilan",
+            "points": 3
+          },
+          {
+            "profileComment": "",
+            "text": "Kamdan-kam",
+            "points": 2
+          },
+          {
+            "profileComment": "",
+            "text": "Hech qachon",
+            "points": 1
+          }
+        ]
+      },
+      {
+        "type": "weighted",
+        "qComment": "Ichki (I)",
+        "text": "Men uchun bo'sh vaqtni ibodatda o'tkazishim muhimdir.",
+        "image": "",
+        "options": [
+          {
+            "profileComment": "",
+            "points": 4,
+            "text": "Shunday"
+          },
+          {
+            "profileComment": "",
+            "text": "Ba'zan shunday",
+            "points": 3
+          },
+          {
+            "profileComment": "",
+            "text": "Kamdan-kam bo'ladi",
+            "points": 2
+          },
+          {
+            "profileComment": "",
+            "points": 1,
+            "text": "Bunday holat bo'lmaydi"
+          }
+        ]
+      }
+    ],
+    "createdAt": {
+      "seconds": 1778583008,
+      "nanoseconds": 92000000
+    },
+    "isSaveOverallResult": true,
+    "timeLimit": 10,
+    "interpretations": [
+      {
+        "max": 40,
+        "min": 0,
+        "text": "Tashqi diniy yo'nalganlik ustuvor. Din shaxsiy maqsadlar, ruhiy taskin yoki ijtimoiy mavqe uchun vosita sifatida ko'riladi."
+      },
+      {
+        "max": 80,
+        "text": "Ichki diniy yo'nalganlik ustuvor. Din hayotning asosi va boshqaruvchi motivi hisoblanadi, e'tiqodlar kundalik hayotga to'liq singgan.",
+        "min": 41
+      }
+    ],
+    "hideResults": true,
+    "isProfileData": false,
+    "description": "Diniy yo'nalganlikni aniqlash shkalasi (G.Allport)"
+  },
+  {
+    "id": "cebpiXO2sRxY4h8J2pSi",
+    "hideResults": false,
+    "isProfileData": false,
+    "interpretations": [
+      {
+        "min": 29,
+        "text": "Muloqotchanlik juda past. Odamlardan qocha d, yolg'izlikni sevadi. Jamoaviy ishlarda qiynaladi.",
+        "max": 32
+      },
+      {
+        "text": "Kamgap, tortinchoq. Yangi tanishuvlarni yoqtirmaydi. Faqat zarurat tug'ilganda muloqot qiladi.",
+        "min": 25,
+        "max": 29
+      },
+      {
+        "max": 24,
+        "min": 19,
+        "text": "Muloqotchanligi o'rtacha. Notanish muhitda biroz noqulaylik sezadi, lekin vaziyatga moslasha oladi."
+      },
+      {
+        "min": 14,
+        "text": "Me'yoriy muloqotchanlik. Boshqalarni eshita oladi, o'z fikrini bayon qiladi, nizolarga sababsiz kirishmaydi.",
+        "max": 18
+      },
+      {
+        "text": "Juda muloqotchan. Har qanday mavzuda gaplasha oladi, yangi tanishuvlarni yaxshi ko'radi.",
+        "min": 9,
+        "max": 13
+      },
+      {
+        "text": "'Hamma joyda bor'. Muloqotga o'ta moyilligi tufayli ba'zida boshqalarning joniga tegishi mumkin.",
+        "min": 4,
+        "max": 8
+      },
+      {
+        "text": "Muloqotchanlik kasallik darajasida yuqori. Haddan tashqari ko'p gapiradi, boshqalarning shaxsiy chegaralarini buzadi.",
+        "min": 0,
+        "max": 3
+      }
+    ],
+    "timeLimit": 9,
+    "isSaveOverallResult": true,
+    "description": "",
+    "questions": [
+      {
+        "type": "weighted",
+        "qComment": "Uchrashuvni kutishga munosabat",
+        "text": "Sizni oddiy yoki ish bilan bog'lik uchrashuv kutib turibdi. Uchrashuv vaqtini kutish sizni asabiylashtiradimi?",
+        "options": [
+          {
+            "profileComment": "Uchrashuv kutishda asabiylashadi",
+            "points": 2,
+            "text": "Ha"
+          },
+          {
+            "points": 1,
+            "text": "Ba'zan",
+            "profileComment": "Uchrashuv kutishda biroz bezovtalanadi"
+          },
+          {
+            "profileComment": "Uchrashuv kutishda xotirjam",
+            "points": 0,
+            "text": "Yo'q"
+          }
+        ],
+        "image": ""
+      },
+      {
+        "text": "Sizga biror majlis, anjuman yoki shu kabi boshqa tadbirda nutq so'zlash, ma'ruza o'qish, axborot yetkazish topshirilsa, bunda xalovatingizni yuqotib, bevosita bo'lib ko'rasizmi?",
+        "options": [
+          {
+            "points": 2,
+            "text": "Ha",
+            "profileComment": "Omma oldida gapirishdan juda cho'chiydi"
+          },
+          {
+            "points": 1,
+            "text": "Ba'zan",
+            "profileComment": "Omma oldida gapirishda hayajonlanadi"
+          },
+          {
+            "profileComment": "Omma oldida o'zini erkin tutadi",
+            "points": 0,
+            "text": "Yo'q"
+          }
+        ],
+        "image": "",
+        "type": "weighted",
+        "qComment": "Omma oldida nutq so'zlash"
+      },
+      {
+        "image": "",
+        "options": [
+          {
+            "text": "Ha",
+            "points": 2,
+            "profileComment": "Muloqotdan qochish uchun shifokorga ham bormaydi"
+          },
+          {
+            "profileComment": "Zarurat bo'lmasa muloqotga kirishmaydi",
+            "text": "Ba'zan",
+            "points": 1
+          },
+          {
+            "profileComment": "Muammolarni o'z vaqtida hal qiladi",
+            "points": 0,
+            "text": "Yo'q"
+          }
+        ],
+        "text": "Shifokor qabuliga borishni kasal zo'rayib ketguncha cho'zib yuradigan odatingiz bormi?",
+        "type": "weighted",
+        "qComment": "Shifokorga murojaat qilish"
+      },
+      {
+        "text": "Sizni boshka shaxarga mehnat safariga jo'natishmoqda. Siz avvallari hech qachon bu shaxarda bo'lmagansiz. Siz bor imkoniyatingizni ishga solib, ushbu mehnat safaridan qutilib qolishga urinasizmi?",
+        "options": [
+          {
+            "text": "Ha",
+            "points": 2,
+            "profileComment": "Yangi joy va yangi odamlardan qochadi"
+          },
+          {
+            "profileComment": "Yangi muhitga ko'nikishi qiyin",
+            "text": "Ba'zan",
+            "points": 1
+          },
+          {
+            "profileComment": "Yangi joylarga bajonidil boradi",
+            "points": 0,
+            "text": "Yo'q"
+          }
+        ],
+        "image": "",
+        "type": "weighted",
+        "qComment": "Yangi muhitga moslashish"
+      },
+      {
+        "type": "weighted",
+        "qComment": "Hissiyotlarni bo'lishish",
+        "image": "",
+        "options": [
+          {
+            "text": "Ha",
+            "points": 2,
+            "profileComment": "Juda ochiqko'ngil, hamma bilan sirlashadi"
+          },
+          {
+            "text": "Ba'zan",
+            "points": 1,
+            "profileComment": "Faqat yaqinlariga dardini aytadi"
+          },
+          {
+            "profileComment": "Ichki kechinmalarini yashiradi",
+            "points": 0,
+            "text": "Yo'q"
+          }
+        ],
+        "text": "O'z kechinmalaringizni birovga u kim bo'lishidan katiy nazar gapirib berishni yoqtirasizmi?"
+      },
+      {
+        "image": "",
+        "options": [
+          {
+            "points": 2,
+            "text": "Ha",
+            "profileComment": "Begonalar bilan gaplashishni yoqtirmaydi"
+          },
+          {
+            "profileComment": "Vaziyatga qarab munosabat bildiradi",
+            "points": 1,
+            "text": "Ba'zan"
+          },
+          {
+            "profileComment": "Begonalarga yordam berishga tayyor",
+            "text": "Yo'q",
+            "points": 0
+          }
+        ],
+        "text": "Ko'chada notanish odam sizga iltimos bilan murojaat kilishi joningizga tegadimi?",
+        "type": "weighted",
+        "qComment": "Notanishlar bilan muloqot"
+      },
+      {
+        "type": "weighted",
+        "qComment": "Avlodlar o'rtasidagi muloqot",
+        "text": "Har xil avlod vakillari, haqiqatdan ham, bir — birini tushunishi kiyin, dep o'ylaysizmi?",
+        "image": "",
+        "options": [
+          {
+            "points": 2,
+            "text": "Ha",
+            "profileComment": "Avlodlar o'rtasida to'siq bor deb hisoblaydi"
+          },
+          {
+            "profileComment": "Ba'zi masalalarda tushunmovchilikni his qiladi",
+            "points": 1,
+            "text": "Ba'zan"
+          },
+          {
+            "profileComment": "Barcha bilan til topisha oladi",
+            "text": "Yo'q",
+            "points": 0
+          }
+        ]
+      },
+      {
+        "text": "Tanishingiz bir necha oy avval sizdan karz olgan bo'lsa, unga pulni kaytarish iltimosi bilan murojaat qilishga uyalasizmi?",
+        "image": "",
+        "options": [
+          {
+            "text": "Ha",
+            "points": 2,
+            "profileComment": "O'z haqqini so'rashga juda tortinadi"
+          },
+          {
+            "text": "Ba'zan",
+            "points": 1,
+            "profileComment": "Qarz so'rashda noqulaylik sezadi"
+          },
+          {
+            "profileComment": "O'z haqqini talab qila oladi",
+            "points": 0,
+            "text": "Yo'q"
+          }
+        ],
+        "type": "weighted",
+        "qComment": "O'z huquqini talab qilish"
+      },
+      {
+        "type": "weighted",
+        "qComment": "Nizoli vaziyatda o'zini tutish",
+        "options": [
+          {
+            "text": "Ha",
+            "points": 2,
+            "profileComment": "E'tirozini ochiq ayta olmaydi, ichida qoladi"
+          },
+          {
+            "text": "Ba'zan",
+            "points": 1,
+            "profileComment": "Kamchiliklarga doim ham e'tiroz bildirmaydi"
+          },
+          {
+            "profileComment": "Kamchilikni o'sha zahoti tushuntiradi",
+            "text": "Yo'q",
+            "points": 0
+          }
+        ],
+        "image": "",
+        "text": "Restoran yoki kafeda sizga sifatsiz taom keltirildi. Siz indamay likopchani jahl bilan bir chetga surib kuyasizmi?"
+      },
+      {
+        "options": [
+          {
+            "points": 2,
+            "text": "Ha",
+            "profileComment": "Hech qachon birinchi bo'lib gap boshlamaydi"
+          },
+          {
+            "profileComment": "Vaziyat talab qilsagina gapiradi",
+            "points": 1,
+            "text": "Ba'zan"
+          },
+          {
+            "points": 0,
+            "text": "Yo'q",
+            "profileComment": "Tezda do'stlashib, suhbat boshlaydi"
+          }
+        ],
+        "image": "",
+        "text": "Notanish odam bilan yolg'iz qolganda, siz suhbatga kirishmaysiz, o'zingiz gap boshlamaysiz. Shundaymi?",
+        "type": "weighted",
+        "qComment": "Suhbatni boshlash"
+      },
+      {
+        "options": [
+          {
+            "points": 2,
+            "text": "Ha",
+            "profileComment": "Navbatda turishni azob deb biladi"
+          },
+          {
+            "profileComment": "Navbat katta bo'lsa rejasini o'zgartiradi",
+            "text": "Ba'zan",
+            "points": 1
+          },
+          {
+            "profileComment": "Qoidalarga bo'ysunib, sabr bilan kutadi",
+            "points": 0,
+            "text": "Yo'q"
+          }
+        ],
+        "image": "",
+        "text": "Siz borgan joyda odamlar uzun navbat hosil kilib turishgan bo'lsa (masalan do'konda, kutubxonada, kassada) niyatingizdan kaytmay kator oxiriga kelib turarmidingiz?",
+        "type": "weighted",
+        "qComment": "Sabr va ijtimoiy intizom"
+      },
+      {
+        "options": [
+          {
+            "profileComment": "Rasmiy tortishuvlardan qattiq qo'rqadi",
+            "points": 2,
+            "text": "Ha"
+          },
+          {
+            "profileComment": "Bahsli vaziyatlarda o'zini yo'qotadi",
+            "points": 1,
+            "text": "Ba'zan"
+          },
+          {
+            "profileComment": "Nizolarni hal qilishda faol ishtirok etadi",
+            "points": 0,
+            "text": "Yo'q"
+          }
+        ],
+        "image": "",
+        "text": "Nizoli vaziyatlarni hal etish bilan shug'ullanuvchi biror komissiya ishida sizni cho'chitadimi?",
+        "type": "weighted",
+        "qComment": "Rasmiy nizolardan qo'rqish"
+      },
+      {
+        "type": "weighted",
+        "qComment": "Mustaqil fikrlash va muloqot",
+        "text": "Siz san'at asarlariga. badiiy asarlarga baho berishda boshqalarning fikr — mulohazalarini e'tiborga olmaysiz. Shundaymi?",
+        "options": [
+          {
+            "text": "Ha",
+            "points": 2,
+            "profileComment": "Boshqalarning fikri bilan qiziqmaydi"
+          },
+          {
+            "profileComment": "Ba'zida o'z fikrida qattiq turadi",
+            "text": "Ba'zan",
+            "points": 1
+          },
+          {
+            "points": 0,
+            "text": "Yo'q",
+            "profileComment": "Boshqalarning fikrini tinglab, xulosa qiladi"
+          }
+        ],
+        "image": ""
+      },
+      {
+        "options": [
+          {
+            "points": 2,
+            "text": "Ha",
+            "profileComment": "Xatolarni ko'rib ham jim turaveradi"
+          },
+          {
+            "text": "Ba'zan",
+            "points": 1,
+            "profileComment": "Faqat muhim hollarda bahslashadi"
+          },
+          {
+            "profileComment": "Xatolarni darhol tuzatishga intiladi",
+            "points": 0,
+            "text": "Yo'q"
+          }
+        ],
+        "image": "",
+        "text": "Siz yaxshi bilgan biror masala bo'yicha birov aniq xato gapirayotgan bo'lsa, bu odam bilan baxslashmasdan indamay qo'ya qolasizmi?",
+        "type": "weighted",
+        "qComment": "Haqiqatni himoya qilish"
+      },
+      {
+        "type": "weighted",
+        "qComment": "Yordamga tayyorlik",
+        "text": "Ish yoki o'qish yuzasidan birov muayyan muammoni hal etishda yordam berishingizni iltimos kilganda, ensangiz kotadimi?",
+        "image": "",
+        "options": [
+          {
+            "points": 2,
+            "text": "Ha",
+            "profileComment": "Boshqalarga yordam berishni xohlamaydi"
+          },
+          {
+            "points": 1,
+            "text": "Ba'zan",
+            "profileComment": "Ba'zan yordam berishdan charchaydi"
+          },
+          {
+            "text": "Yo'q",
+            "points": 0,
+            "profileComment": "Yordam so'rashsa jon-deb yordam beradi"
+          }
+        ]
+      },
+      {
+        "type": "weighted",
+        "qComment": "Muloqot shakli",
+        "text": "Fikringizni og'zaki aytgandan ko'ra yozma tarzda bildirishni ma'qul ko'rasizmi?",
+        "image": "",
+        "options": [
+          {
+            "profileComment": "Og'zaki muloqotdan ko'ra yozishmani afzal biladi",
+            "points": 2,
+            "text": "Ha"
+          },
+          {
+            "profileComment": "Murakkab mavzularda yozishni xohlaydi",
+            "points": 1,
+            "text": "Ba'zan"
+          },
+          {
+            "text": "Yo'q",
+            "points": 0,
+            "profileComment": "Bevosita muloqotni afzal ko'radi"
+          }
+        ]
+      }
+    ],
+    "title": "Muomalalik (Muloqotchanlik) metodikasi",
+    "createdAt": {
+      "seconds": 1778439362,
+      "nanoseconds": 232000000
+    }
+  },
+  {
+    "id": "oMNl2hRSfbR35KUqzC2e",
+    "createdAt": {
+      "seconds": 1778428339,
+      "nanoseconds": 567000000
+    },
+    "timeLimit": 10,
+    "interpretations": [],
+    "isProfileData": true,
+    "questions": [
+      {
+        "type": "date",
+        "qComment": "",
+        "image": "",
+        "options": [],
+        "text": "Tug'ilgan yili, oyi, kuni"
+      },
+      {
+        "type": "text",
+        "qComment": "",
+        "text": "Doimiy yashash manzili (Misol uchun: Toshkent shahar, Chilonzor tumani Chilonzor 21-mavze)",
+        "options": [],
+        "image": ""
+      },
+      {
+        "type": "text",
+        "qComment": "",
+        "options": [],
+        "image": "",
+        "text": "Vaqtinchalik yashash manzili"
+      },
+      {
+        "type": "single",
+        "qComment": "",
+        "text": "Turmush qurganmisiz ?",
+        "image": "",
+        "options": [
+          {
+            "points": 0,
+            "text": "Ha",
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "Yo'q"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "qComment": "",
+        "options": [],
+        "image": "",
+        "text": "Otasi (F.I.O)"
+      },
+      {
+        "type": "text",
+        "qComment": "",
+        "image": "",
+        "options": [],
+        "text": "Onasi (F.I.O)"
+      },
+      {
+        "type": "single",
+        "qComment": "",
+        "text": "Yashash sharoiti ",
+        "options": [
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "TTJ"
+          },
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "Ijarada"
+          },
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "uyda"
+          }
+        ],
+        "image": ""
+      },
+      {
+        "text": "Salomatligi haqida malumot (xronik kasalliki bormi)",
+        "image": "",
+        "options": [
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "Ha"
+          },
+          {
+            "profileComment": "",
+            "text": "yo'q",
+            "points": 0
+          }
+        ],
+        "type": "single",
+        "qComment": ""
+      },
+      {
+        "options": [],
+        "image": "",
+        "text": "Fanlarning o'zlashtirishi (GPA bali)",
+        "type": "text",
+        "qComment": "GPA "
+      },
+      {
+        "options": [],
+        "image": "",
+        "text": "Xarakterining asosiy xususiyatlari(muloqotining asosiy xususiyatlari, qobiliyatlari, o'z-o'zini baholashi, extiyoj va mayllari sohasi) ",
+        "type": "text",
+        "qComment": ""
+      },
+      {
+        "image": "",
+        "options": [
+          {
+            "profileComment": "",
+            "text": "Ijobiy-ijtimoiy",
+            "points": 0
+          },
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "muammoli"
+          },
+          {
+            "profileComment": "",
+            "text": "Krizisli",
+            "points": 0
+          }
+        ],
+        "text": "Oilaviy munosabatlar",
+        "type": "single",
+        "qComment": ""
+      },
+      {
+        "image": "",
+        "options": [
+          {
+            "profileComment": "",
+            "text": "Kirishimli",
+            "points": 0
+          },
+          {
+            "text": "Liderlik sifatlari",
+            "points": 0,
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "Muloqot doirasi tor"
+          }
+        ],
+        "text": "Kursdoshlar bilan o'zaro munosabati",
+        "type": "single",
+        "qComment": ""
+      },
+      {
+        "options": [
+          {
+            "profileComment": "",
+            "text": "Samimiy",
+            "points": 0
+          },
+          {
+            "text": "Neytral",
+            "points": 0,
+            "profileComment": ""
+          },
+          {
+            "points": 0,
+            "text": "Yopiq",
+            "profileComment": ""
+          }
+        ],
+        "image": "",
+        "text": "Tengdoshlari bilan o'zaro munosabati",
+        "type": "single",
+        "qComment": ""
+      },
+      {
+        "image": "",
+        "options": [
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "Samimiy"
+          },
+          {
+            "text": "Neytral",
+            "points": 0,
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "Yopiq",
+            "points": 0
+          }
+        ],
+        "text": "O'qituvchilar bilan o'zaro munosabati",
+        "type": "single",
+        "qComment": ""
+      },
+      {
+        "text": "Muloqotchanligi",
+        "options": [
+          {
+            "profileComment": "",
+            "text": "Muloqotchan",
+            "points": 0
+          },
+          {
+            "profileComment": "",
+            "text": "Muloqotchanligi o'rta",
+            "points": 0
+          },
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "Muloqotchanligi sust"
+          }
+        ],
+        "image": "",
+        "type": "single",
+        "qComment": ""
+      },
+      {
+        "options": [],
+        "image": "",
+        "text": "Ajralib turadigan xarakter xususiyatlari",
+        "type": "text",
+        "qComment": ""
+      },
+      {
+        "text": "O'ziga beradigan bahosi",
+        "image": "",
+        "options": [
+          {
+            "text": "Yuqori",
+            "points": 0,
+            "profileComment": ""
+          },
+          {
+            "text": "O'rta",
+            "points": 0,
+            "profileComment": ""
+          },
+          {
+            "points": 0,
+            "text": "Past",
+            "profileComment": ""
+          }
+        ],
+        "type": "single",
+        "qComment": ""
+      },
+      {
+        "text": "Xavotirlanuvchanligi",
+        "image": "",
+        "options": [
+          {
+            "points": 0,
+            "text": "Yuqori",
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "O'rta",
+            "points": 0
+          },
+          {
+            "text": "Past",
+            "points": 0,
+            "profileComment": ""
+          }
+        ],
+        "type": "single",
+        "qComment": ""
+      },
+      {
+        "type": "single",
+        "qComment": "",
+        "text": "Agressivlik darajasi",
+        "image": "",
+        "options": [
+          {
+            "text": "Yuqori",
+            "points": 0,
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "O'rta"
+          },
+          {
+            "text": "Past",
+            "points": 0,
+            "profileComment": ""
+          }
+        ]
+      },
+      {
+        "type": "single",
+        "qComment": "",
+        "options": [
+          {
+            "points": 0,
+            "text": "Kuchli",
+            "profileComment": ""
+          },
+          {
+            "text": "O'rta",
+            "points": 0,
+            "profileComment": ""
+          },
+          {
+            "points": 0,
+            "text": "Kuchsiz",
+            "profileComment": ""
+          }
+        ],
+        "image": "",
+        "text": "Irodaviy xususiyatlari"
+      },
+      {
+        "text": "Diqqati",
+        "options": [
+          {
+            "points": 0,
+            "text": "Jamlangan",
+            "profileComment": ""
+          },
+          {
+            "points": 0,
+            "text": "O'rta",
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "Tarqoq",
+            "points": 0
+          }
+        ],
+        "image": "",
+        "type": "single",
+        "qComment": ""
+      },
+      {
+        "text": "Tafakkur xususiyatlari (dunyoqarashi, xotirasi)",
+        "options": [
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "Kuchli"
+          },
+          {
+            "points": 0,
+            "text": "O'rta",
+            "profileComment": ""
+          },
+          {
+            "points": 0,
+            "text": "Kuchsiz",
+            "profileComment": ""
+          }
+        ],
+        "image": "",
+        "type": "single",
+        "qComment": ""
+      },
+      {
+        "text": "Intellektual salohiyati (mantiqiy fikrlashi)",
+        "options": [
+          {
+            "profileComment": "",
+            "points": 0,
+            "text": "Yuqori"
+          },
+          {
+            "points": 0,
+            "text": "O'rta",
+            "profileComment": ""
+          },
+          {
+            "profileComment": "",
+            "text": "Past",
+            "points": 0
+          }
+        ],
+        "image": "",
+        "type": "single",
+        "qComment": ""
+      },
+      {
+        "type": "text",
+        "qComment": "",
+        "text": "Xobbisi",
+        "image": "",
+        "options": []
+      },
+      {
+        "type": "text",
+        "qComment": "",
+        "options": [],
+        "image": "",
+        "text": "Qaysi sport turi bilan shug'ullanadi"
+      },
+      {
+        "type": "text",
+        "qComment": "",
+        "text": "Qanday san'at turiga qiziqadi (masalan rassomchilik, dizayn)",
+        "image": "",
+        "options": []
+      },
+      {
+        "image": "",
+        "options": [],
+        "text": "Erishgan yutuqlari",
+        "type": "text",
+        "qComment": ""
+      },
+      {
+        "options": [],
+        "image": "",
+        "text": "Bo'sh vaqtdan unumli foydalanish",
+        "type": "text",
+        "qComment": ""
+      },
+      {
+        "type": "single",
+        "qComment": "Harakter tipi",
+        "text": "O'zingiz yoqqan faqatgina bitta shaklni tanlang",
+        "options": [
+          {
+            "profileComment": "Mehnatsevar, tartibli, tafsilotlarga e'tiborli, chidamli. Ammo qaror qabul qilishda sust bo'lishi mumkin.",
+            "points": 0,
+            "text": "Kvadrat"
+          },
+          {
+            "points": 0,
+            "text": "Uchburchak",
+            "profileComment": "Yetakchi (lider), maqsad sari intiluvchan, raqobatbardosh, o'z fikrida qat'iy. Ba'zida boshqalar fikrini inobatga olmaydi."
+          },
+          {
+            "profileComment": "O'zgaruvchan holatda bo'lgan shaxs. Yangilik qidirayotgan, shubhalanayotgan, lekin o'rganishga ochiq. Odatda o'tish davridagi talabalarga xos.",
+            "text": "To'g'ri To'rtburchak",
+            "points": 0
+          },
+          {
+            "points": 0,
+            "text": "Doira",
+            "profileComment": "Muloqotga moyil, hamdard, nizolarni yoqtirmaydi, jamoada ahillikni saqlaydi. U uchun insoniy munosabatlar ishdan ustun."
+          },
+          {
+            "text": "Zigzag",
+            "points": 0,
+            "profileComment": "Ijodkor, kreativ, tasavvuri boy, standartlarni yoqtirmaydi. Tez fikrlaydi, lekin tartibsiz bo'lishi mumkin."
+          }
+        ],
+        "image": "Picture1.png"
+      },
+      {
+        "type": "single",
+        "qComment": "Temperament tipi",
+        "image": "Picture2.png",
+        "options": [
+          {
+            "profileComment": "Xolerik",
+            "points": 0,
+            "text": "1"
+          },
+          {
+            "profileComment": "Flegmatik",
+            "text": "2",
+            "points": 0
+          },
+          {
+            "profileComment": "Melonxolik",
+            "text": "3",
+            "points": 0
+          },
+          {
+            "text": "4",
+            "points": 0,
+            "profileComment": "Sangvinik"
+          }
+        ],
+        "text": "Shu 4 ta holatdan birini tanlang"
+      }
+    ],
+    "title": "Talabaning ijtimoiy-psixologik portreti"
+  }
+]

@@ -4,173 +4,393 @@
   "isProfileData": true,
   "questions": [
     {
-      "text": "Sizni оддий ёки иш билан боғлик учрашув кутиб турибди. Учрашув вақтини кутиш сизни асабийлаштирадими?",
+      "text": "Sizni oddiy yoki ish bilan bog'lik uchrashuv kutib turibdi. Uchrashuv vaqtini kutish sizni asabiylashtiradimi?",
       "qComment": "Uchrashuvni kutishga munosabat",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Uchrashuv kutishda asabiylashadi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Uchrashuv kutishda biroz bezovtalanadi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Uchrashuv kutishda xotirjam" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Uchrashuv kutishda asabiylashadi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Uchrashuv kutishda biroz bezovtalanadi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Uchrashuv kutishda xotirjam"
+        }
       ]
     },
     {
-      "text": "Сизга бирор мажлис, анжуман ёки шу каби бошқа тадбирда нутқ сўзлаш, маъруза ўқиш, ахборот етказиш топширилса, бунда халоватингизни йуқотиб, бевосита бўлиб кўрасизми?",
+      "text": "Sizga biror majlis, anjuman yoki shu kabi boshqa tadbirda nutq so'zlash, ma'ruza o'qish, axborot yetkazish topshirilsa, bunda xalovatingizni yuqotib, bevosita bo'lib ko'rasizmi?",
       "qComment": "Omma oldida nutq so'zlash",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Omma oldida gapirishdan juda cho'chiydi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Omma oldida gapirishda hayajonlanadi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Omma oldida o'zini erkin tutadi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Omma oldida gapirishdan juda cho'chiydi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Omma oldida gapirishda hayajonlanadi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Omma oldida o'zini erkin tutadi"
+        }
       ]
     },
     {
-      "text": "Шифокор қабулига боришни касал зўрайиб кетгунча чўзиб юрадиган одатингиз борми?",
+      "text": "Shifokor qabuliga borishni kasal zo'rayib ketguncha cho'zib yuradigan odatingiz bormi?",
       "qComment": "Shifokorga murojaat qilish",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Muloqotdan qochish uchun shifokorga ham bormaydi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Zarurat bo'lmasa muloqotga kirishmaydi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Muammolarni o'z vaqtida hal qiladi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Muloqotdan qochish uchun shifokorga ham bormaydi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Zarurat bo'lmasa muloqotga kirishmaydi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Muammolarni o'z vaqtida hal qiladi"
+        }
       ]
     },
     {
-      "text": "Сизни бошка шахарга меҳнат сафарига жўнатишмоқда. Сиз авваллари ҳеч қачон бу шахарда бўлмагансиз. Сиз бор имкониятингизни ишга солиб, ушбу меҳнат сафаридан қутилиб қолишга уринасизми?",
+      "text": "Sizni boshka shaxarga mehnat safariga jo'natishmoqda. Siz avvallari hech qachon bu shaxarda bo'lmagansiz. Siz bor imkoniyatingizni ishga solib, ushbu mehnat safaridan qutilib qolishga urinasizmi?",
       "qComment": "Yangi muhitga moslashish",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Yangi joy va yangi odamlardan qochadi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Yangi muhitga ko'nikishi qiyin" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Yangi joylarga bajonidil boradi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Yangi joy va yangi odamlardan qochadi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Yangi muhitga ko'nikishi qiyin"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Yangi joylarga bajonidil boradi"
+        }
       ]
     },
     {
-      "text": "Ўз кечинмаларингизни бировга у ким бўлишидан катьий назар гапириб беришни ёқтирасизми?",
+      "text": "O'z kechinmalaringizni birovga u kim bo'lishidan katiy nazar gapirib berishni yoqtirasizmi?",
       "qComment": "Hissiyotlarni bo'lishish",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Juda ochiqko'ngil, hamma bilan sirlashadi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Faqat yaqinlariga dardini aytadi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Ichki kechinmalarini yashiradi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Juda ochiqko'ngil, hamma bilan sirlashadi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Faqat yaqinlariga dardini aytadi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Ichki kechinmalarini yashiradi"
+        }
       ]
     },
     {
-      "text": "Кўчада нотаниш одам сизга илтимос билан мурожаат килиши жонингизга тегадими?",
+      "text": "Ko'chada notanish odam sizga iltimos bilan murojaat kilishi joningizga tegadimi?",
       "qComment": "Notanishlar bilan muloqot",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Begonalar bilan gaplashishni yoqtirmaydi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Vaziyatga qarab munosabat bildiradi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Begonalarga yordam berishga tayyor" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Begonalar bilan gaplashishni yoqtirmaydi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Vaziyatga qarab munosabat bildiradi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Begonalarga yordam berishga tayyor"
+        }
       ]
     },
     {
-      "text": "Ҳар хил авлод вакиллари, ҳақиқатдан ҳам, бир — бирини тушуниши кийин, деп ўйлайсизми?",
+      "text": "Har xil avlod vakillari, haqiqatdan ham, bir — birini tushunishi kiyin, dep o'ylaysizmi?",
       "qComment": "Avlodlar o'rtasidagi muloqot",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Avlodlar o'rtasida to'siq bor deb hisoblaydi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Ba'zi masalalarda tushunmovchilikni his qiladi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Barcha bilan til topisha oladi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Avlodlar o'rtasida to'siq bor deb hisoblaydi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Ba'zi masalalarda tushunmovchilikni his qiladi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Barcha bilan til topisha oladi"
+        }
       ]
     },
     {
-      "text": "Танишингиз бир неча ой аввал сиздан карз олган бўлса, унга пулни кайтариш илтимоси билан мурожаат қилишга уяласизми?",
+      "text": "Tanishingiz bir necha oy avval sizdan karz olgan bo'lsa, unga pulni kaytarish iltimosi bilan murojaat qilishga uyalasizmi?",
       "qComment": "O'z huquqini talab qilish",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "O'z haqqini so'rashga juda tortinadi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Qarz so'rashda noqulaylik sezadi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "O'z haqqini talab qila oladi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "O'z haqqini so'rashga juda tortinadi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Qarz so'rashda noqulaylik sezadi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "O'z haqqini talab qila oladi"
+        }
       ]
     },
     {
-      "text": "Ресторан ёки кафеда сизга сифатсиз таом келтирилди. Сиз индамай ликопчани жаҳл билан бир четга суриб куясизми?",
+      "text": "Restoran yoki kafeda sizga sifatsiz taom keltirildi. Siz indamay likopchani jahl bilan bir chetga surib kuyasizmi?",
       "qComment": "Nizoli vaziyatda o'zini tutish",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "E'tirozini ochiq ayta olmaydi, ichida qoladi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Kamchiliklarga doim ham e'tiroz bildirmaydi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Kamchilikni o'sha zahoti tushuntiradi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "E'tirozini ochiq ayta olmaydi, ichida qoladi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Kamchiliklarga doim ham e'tiroz bildirmaydi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Kamchilikni o'sha zahoti tushuntiradi"
+        }
       ]
     },
     {
-      "text": "Нотаниш одам билан ёлғиз қолганда, сиз суҳбатга киришмайсиз, ўзингиз гап бошламайсиз. Шундайми?",
+      "text": "Notanish odam bilan yolg'iz qolganda, siz suhbatga kirishmaysiz, o'zingiz gap boshlamaysiz. Shundaymi?",
       "qComment": "Suhbatni boshlash",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Hech qachon birinchi bo'lib gap boshlamaydi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Vaziyat talab qilsagina gapiradi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Tezda do'stlashib, suhbat boshlaydi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Hech qachon birinchi bo'lib gap boshlamaydi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Vaziyat talab qilsagina gapiradi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Tezda do'stlashib, suhbat boshlaydi"
+        }
       ]
     },
     {
-      "text": "Сиз борган жойда одамлар узун навбат ҳосил килиб туришган бўлса (масалан дўконда, кутубхонада, кассада) ниятингиздан кайтмай катор охирига келиб турармидингиз?",
+      "text": "Siz borgan joyda odamlar uzun navbat hosil kilib turishgan bo'lsa (masalan do'konda, kutubxonada, kassada) niyatingizdan kaytmay kator oxiriga kelib turarmidingiz?",
       "qComment": "Sabr va ijtimoiy intizom",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Navbatda turishni azob deb biladi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Navbat katta bo'lsa rejasini o'zgartiradi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Qoidalarga bo'ysunib, sabr bilan kutadi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Navbatda turishni azob deb biladi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Navbat katta bo'lsa rejasini o'zgartiradi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Qoidalarga bo'ysunib, sabr bilan kutadi"
+        }
       ]
     },
     {
-      "text": "Низоли вазиятларни ҳал этиш билан шуғулланувчи бирор комиссия ишида сизни чўчитадими?",
+      "text": "Nizoli vaziyatlarni hal etish bilan shug'ullanuvchi biror komissiya ishida sizni cho'chitadimi?",
       "qComment": "Rasmiy nizolardan qo'rqish",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Rasmiy tortishuvlardan qattiq qo'rqadi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Bahsli vaziyatlarda o'zini yo'qotadi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Nizolarni hal qilishda faol ishtirok etadi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Rasmiy tortishuvlardan qattiq qo'rqadi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Bahsli vaziyatlarda o'zini yo'qotadi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Nizolarni hal qilishda faol ishtirok etadi"
+        }
       ]
     },
     {
-      "text": "Сиз санъат асарларига. бадиий асарларга баҳо беришда бошқаларнинг фикр — мулоҳазаларини эътиборга олмайсиз. Шундайми?",
+      "text": "Siz san'at asarlariga. badiiy asarlarga baho berishda boshqalarning fikr — mulohazalarini e'tiborga olmaysiz. Shundaymi?",
       "qComment": "Mustaqil fikrlash va muloqot",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Boshqalarning fikri bilan qiziqmaydi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Ba'zida o'z fikrida qattiq turadi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Boshqalarning fikrini tinglab, xulosa qiladi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Boshqalarning fikri bilan qiziqmaydi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Ba'zida o'z fikrida qattiq turadi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Boshqalarning fikrini tinglab, xulosa qiladi"
+        }
       ]
     },
     {
-      "text": "Сиз яхши билган бирор масала бўйича биров аниқ хато гапираётган бўлса, бу одам билан бахслашмасдан индамай қўя қоласизми?",
+      "text": "Siz yaxshi bilgan biror masala bo'yicha birov aniq xato gapirayotgan bo'lsa, bu odam bilan baxslashmasdan indamay qo'ya qolasizmi?",
       "qComment": "Haqiqatni himoya qilish",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Xatolarni ko'rib ham jim turaveradi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Faqat muhim hollarda bahslashadi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Xatolarni darhol tuzatishga intiladi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Xatolarni ko'rib ham jim turaveradi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Faqat muhim hollarda bahslashadi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Xatolarni darhol tuzatishga intiladi"
+        }
       ]
     },
     {
-      "text": "Иш ёки ўқиш юзасидан биров муайян муаммони ҳал этишда ёрдам беришингизни илтимос килганда, энсангиз котадими?",
+      "text": "Ish yoki o'qish yuzasidan birov muayyan muammoni hal etishda yordam berishingizni iltimos kilganda, ensangiz kotadimi?",
       "qComment": "Yordamga tayyorlik",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Boshqalarga yordam berishni xohlamaydi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Ba'zan yordam berishdan charchaydi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Yordam so'rashsa jon-deb yordam beradi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Boshqalarga yordam berishni xohlamaydi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Ba'zan yordam berishdan charchaydi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Yordam so'rashsa jon-deb yordam beradi"
+        }
       ]
     },
     {
-      "text": "Фикрингизни оғзаки айтгандан кўра ёзма тарзда билдиришни маъқул кўрасизми?",
+      "text": "Fikringizni og'zaki aytgandan ko'ra yozma tarzda bildirishni ma'qul ko'rasizmi?",
       "qComment": "Muloqot shakli",
       "type": "weighted",
       "options": [
-        { "text": "Ҳа", "points": 2, "profileComment": "Og'zaki muloqotdan ko'ra yozishmani afzal biladi" },
-        { "text": "Баъзан", "points": 1, "profileComment": "Murakkab mavzularda yozishni xohlaydi" },
-        { "text": "Йўқ", "points": 0, "profileComment": "Bevosita muloqotni afzal ko'radi" }
+        {
+          "text": "Ha",
+          "points": 2,
+          "profileComment": "Og'zaki muloqotdan ko'ra yozishmani afzal biladi"
+        },
+        {
+          "text": "Ba'zan",
+          "points": 1,
+          "profileComment": "Murakkab mavzularda yozishni xohlaydi"
+        },
+        {
+          "text": "Yo'q",
+          "points": 0,
+          "profileComment": "Bevosita muloqotni afzal ko'radi"
+        }
       ]
     }
   ],
   "interpretations": [
-    { "min": 30, "max": 32, "text": "Muloqotchanlik juda past. Odamlardan qocha d, yolg'izlikni sevadi. Jamoaviy ishlarda qiynaladi." },
-    { "min": 25, "max": 29, "text": "Kamgap, tortinchoq. Yangi tanishuvlarni yoqtirmaydi. Faqat zarurat tug'ilganda muloqot qiladi." },
-    { "min": 19, "max": 24, "text": "Muloqotchanligi o'rtacha. Notanish muhitda biroz noqulaylik sezadi, lekin vaziyatga moslasha oladi." },
-    { "min": 14, "max": 18, "text": "Me'yoriy muloqotchanlik. Boshqalarni eshita oladi, o'z fikrini bayon qiladi, nizolarga sababsiz kirishmaydi." },
-    { "min": 9, "max": 13, "text": "Juda muloqotchan. Har qanday mavzuda gaplasha oladi, yangi tanishuvlarni yaxshi ko'radi." },
-    { "min": 4, "max": 8, "text": "'Hamma joyda bor'. Muloqotga o'ta moyilligi tufayli ba'zida boshqalarning joniga tegishi mumkin." },
-    { "min": 0, "max": 3, "text": "Muloqotchanlik kasallik darajasida yuqori. Haddan tashqari ko'p gapiradi, boshqalarning shaxsiy chegaralarini buzadi." }
+    {
+      "min": 30,
+      "max": 32,
+      "text": "Muloqotchanlik juda past. Odamlardan qocha d, yolg'izlikni sevadi. Jamoaviy ishlarda qiynaladi."
+    },
+    {
+      "min": 25,
+      "max": 29,
+      "text": "Kamgap, tortinchoq. Yangi tanishuvlarni yoqtirmaydi. Faqat zarurat tug'ilganda muloqot qiladi."
+    },
+    {
+      "min": 19,
+      "max": 24,
+      "text": "Muloqotchanligi o'rtacha. Notanish muhitda biroz noqulaylik sezadi, lekin vaziyatga moslasha oladi."
+    },
+    {
+      "min": 14,
+      "max": 18,
+      "text": "Me'yoriy muloqotchanlik. Boshqalarni eshita oladi, o'z fikrini bayon qiladi, nizolarga sababsiz kirishmaydi."
+    },
+    {
+      "min": 9,
+      "max": 13,
+      "text": "Juda muloqotchan. Har qanday mavzuda gaplasha oladi, yangi tanishuvlarni yaxshi ko'radi."
+    },
+    {
+      "min": 4,
+      "max": 8,
+      "text": "'Hamma joyda bor'. Muloqotga o'ta moyilligi tufayli ba'zida boshqalarning joniga tegishi mumkin."
+    },
+    {
+      "min": 0,
+      "max": 3,
+      "text": "Muloqotchanlik kasallik darajasida yuqori. Haddan tashqari ko'p gapiradi, boshqalarning shaxsiy chegaralarini buzadi."
+    }
   ]
 }

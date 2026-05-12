@@ -348,15 +348,8 @@ function renderQuestion(container) {
                 <div class="ms-question-card animate-scale">
                     <h2 class="ms-q-title">${q.text}</h2>
 
-                    ${(q.image || q.qComment) ? `
-                        <div class="ms-extra-toggle" id="toggle-extra">
-                            <i data-lucide="info" style="width:14px"></i> Muhim ma'lumot
-                        </div>
-                        <div class="ms-extra-content" id="extra-content">
-                            ${q.image ? `<img src="${q.image}" class="ms-q-image" style="width:100%; border-radius:12px; margin-bottom:10px; object-fit:contain; max-height:300px; background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.05)">` : ''}
-                            ${q.qComment ? `<div class="ms-q-comment">${q.qComment}</div>` : ''}
-                        </div>
-                    ` : ''}
+                    ${q.image ? `<img src="${q.image}" class="ms-q-image" style="width:100%; border-radius:12px; margin-bottom:15px; object-fit:contain; max-height:300px; background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.05)">` : ''}
+                    ${q.qComment ? `<div class="ms-q-comment">${q.qComment}</div>` : ''}
 
                     <div class="ms-options">
                         ${q.type === 'text' ? `<textarea id="text-ans" placeholder="Javobingizni yozing..." class="ms-input" style="height:150px">${answers[currentQ] || ''}</textarea>` :
@@ -395,17 +388,6 @@ function renderQuestion(container) {
     if (window.lucide) window.lucide.createIcons();
 
     // Interaction
-    const toggleBtn = container.querySelector('#toggle-extra');
-    if (toggleBtn) {
-        toggleBtn.onclick = () => {
-            const content = container.querySelector('#extra-content');
-            content.classList.toggle('show');
-            toggleBtn.innerHTML = content.classList.contains('show') ? 
-                `<i data-lucide="eye-off" style="width:14px"></i> Yopish` : 
-                `<i data-lucide="info" style="width:14px"></i> Muhim ma'lumot`;
-            if (window.lucide) window.lucide.createIcons();
-        };
-    }
 
     container.querySelectorAll('.ms-option-item').forEach(btn => {
         btn.onclick = () => {
@@ -514,7 +496,7 @@ function renderSuccess(container, score) {
     let conclusion = "So'rovnomada ishtirok etganingiz uchun rahmat!";
     let interpretationTitle = "Natija saqlandi";
     
-    if (hasInterpretations) {
+    if (hasInterpretations && !test.hideResults) {
         interpretationTitle = "Sizning natijangiz";
         const match = test.interpretations.find(i => score >= i.min && score <= i.max);
         if (match) conclusion = match.text;
@@ -535,15 +517,15 @@ function renderSuccess(container, score) {
                     </div>
 
                     <h1 style="font-weight: 900; font-size: 2.2rem; margin-bottom: 8px; color: #1B2559; letter-spacing: -0.5px;">Tabriklaymiz!</h1>
-                    <p style="opacity: 0.6; margin-bottom: 30px; font-weight: 500; font-size: 1.05rem; color: #1B2559;">${hasInterpretations ? 'Siz testni muvaffaqiyatli yakunladingiz' : 'Sizning ma\'lumotlaringiz muvaffaqiyatli saqlandi'}</p>
+                    <p style="opacity: 0.6; margin-bottom: 30px; font-weight: 500; font-size: 1.05rem; color: #1B2559;">${(hasInterpretations && !test.hideResults) ? 'Siz testni muvaffaqiyatli yakunladingiz' : 'Sizning ma\'lumotlaringiz muvaffaqiyatli saqlandi'}</p>
                     
                     <div style="background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%); padding: 30px 20px; border-radius: 28px; margin-bottom: 20px; border: 1px solid rgba(0,0,0,0.03); box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
-                        ${hasInterpretations ? `
+                        ${(hasInterpretations && !test.hideResults) ? `
                             <div style="text-transform: uppercase; font-size: 0.75rem; font-weight: 800; color: var(--ms-primary); letter-spacing: 1.5px; margin-bottom: 10px;">${interpretationTitle}</div>
                             <h2 style="font-size: 4rem; font-weight: 900; color: #4318FF; line-height: 1; margin-bottom: 15px; text-shadow: 0 10px 20px rgba(67, 24, 255, 0.1);">${score}<span style="font-size: 1.5rem; opacity: 0.5; margin-left: 5px;">ball</span></h2>
                             <div style="font-weight: 700; line-height: 1.5; font-size: 1.15rem; color: #1B2559; padding: 0 10px;">${conclusion}</div>
                         ` : `
-                            <div style="font-weight: 700; line-height: 1.6; font-size: 1.2rem; color: #1B2559;">${conclusion}</div>
+                            <div style="font-weight: 700; line-height: 1.6; font-size: 1.2rem; color: #1B2559;">So'rovnomada ishtirok etganingiz uchun rahmat! Natijalaringiz tizimga saqlandi.</div>
                         `}
                     </div>
                     

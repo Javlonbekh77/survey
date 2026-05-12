@@ -1,5 +1,5 @@
 import { db, isMock, mockData, storage } from '../firebase-config.js';
-import { 
+import {
     collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, orderBy, getDoc, limit, serverTimestamp
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -11,7 +11,7 @@ let subViewParams = {};
 
 export async function renderAdmin(container) {
     initTheme();
-    
+
     container.innerHTML = `
         <div class="admin-layout animate-fade">
             <aside class="admin-sidebar">
@@ -49,7 +49,7 @@ export async function renderAdmin(container) {
     const contentArea = document.getElementById('admin-content');
     const pageTitle = document.getElementById('page-title');
     const pageSubtitle = document.getElementById('page-subtitle');
-    
+
     document.getElementById('theme-toggle-btn').addEventListener('click', () => { toggleTheme(); if (window.lucide) window.lucide.createIcons(); });
     document.getElementById('admin-logout').addEventListener('click', logout);
 
@@ -67,7 +67,7 @@ export async function renderAdmin(container) {
         const cached = getCached(col);
         if (cached) return cached;
         const snap = await getDocs(collection(db, col));
-        const data = snap.docs.map(doc => ({id: doc.id, ...doc.data()}));
+        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setCache(col, data);
         return data;
     }
@@ -90,7 +90,7 @@ export async function renderAdmin(container) {
 
     // --- HELPERS ---
     async function hardResetDatabase() {
-        if(!confirm("DIQQAT! Barcha guruhlar, talabalar va test natijalari butunlay o'chib ketadi. Bu amalni ortga qaytarib bo'lmaydi. Davom etasizmi?")) return;
+        if (!confirm("DIQQAT! Barcha guruhlar, talabalar va test natijalari butunlay o'chib ketadi. Bu amalni ortga qaytarib bo'lmaydi. Davom etasizmi?")) return;
         const password = prompt("Tasdiqlash uchun 'RESET' so'zini yozing:");
         if (password !== 'RESET') return;
 
@@ -107,13 +107,13 @@ export async function renderAdmin(container) {
     }
 
     async function seedIIAUData() {
-        if(!confirm("Diqqat! Bu amal tizimga IIAU standart strukturasini (Fakultetlar, Yo'nalishlar) qo'shadi. Davom etasizmi?")) return;
+        if (!confirm("Diqqat! Bu amal tizimga IIAU standart strukturasini (Fakultetlar, Yo'nalishlar) qo'shadi. Davom etasizmi?")) return;
         const structure = [
             { fac: 'IIXM', dirs: ['JIXIM', 'Turizm', 'XM', 'AXB'] },
             { fac: 'Islomshunoslik', dirs: ['Manbashunolik', 'Dinshunoslik', 'islomshunoslik'] },
             { fac: 'MSHF', dirs: ['Xorijiy tilllar', 'Filologiya', 'Psixologiya'] }
         ];
-        
+
         for (const item of structure) {
             for (const dir of item.dirs) {
                 for (let c = 1; c <= 4; c++) {
@@ -122,7 +122,7 @@ export async function renderAdmin(container) {
                         direction: dir,
                         course: c,
                         name: `${dir}-${c}01`,
-                        students: [{name: 'Namuna Talaba', completedTests: []}]
+                        students: [{ name: 'Namuna Talaba', completedTests: [] }]
                     });
                 }
             }
@@ -135,14 +135,34 @@ export async function renderAdmin(container) {
     async function renderDashboard(area) {
         pageTitle.innerText = "IIAU Dashboard";
         const [tests, groups, submissionsSnap] = await Promise.all([
-            fetchData("tests"), 
-            fetchData("groups"), 
+            fetchData("tests"),
+            fetchData("groups"),
             getDocs(query(collection(db, "submissions"), orderBy("timestamp", "desc")))
         ]);
-        
-        const subs = submissionsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+
+        const subs = submissionsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const recentSubs = subs.slice(0, 5);
         let sCount = 0; groups.forEach(g => sCount += (g.students?.length || 0));
+
+        // Calculate stats
+        const now = new Date();
+        const last24h = now.getTime() - (24 * 60 * 60 * 1000);
+        const todaySubs = subs.filter(s => {
+            const ts = s.timestamp?.seconds ? s.timestamp.seconds * 1000 : 0;
+            return ts > last24h;
+        }).length;
+
+        const testStats = {};
+        subs.forEach(s => testStats[s.testTitle] = (testStats[s.testTitle] || 0) + 1);
+        const topTests = Object.entries(testStats).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+        const groupStats = {};
+        subs.forEach(s => {
+            const g = groups.find(gx => gx.id === s.groupId);
+            const gName = g?.name || 'Noma\'lum';
+            groupStats[gName] = (groupStats[gName] || 0) + 1;
+        });
+        const topGroups = Object.entries(groupStats).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
         area.innerHTML = `
             <div class="grid grid-4 mb-4">
@@ -151,15 +171,37 @@ export async function renderAdmin(container) {
                 <div class="card stat-card animate-scale" style="animation-delay: 0.3s"><div class="icon-circle accent"><i data-lucide="graduation-cap"></i></div><div><p class="text-muted small">Talabalar</p><h3>${sCount}</h3></div></div>
                 <div class="card stat-card animate-scale" style="animation-delay: 0.4s"><div class="icon-circle success"><i data-lucide="activity"></i></div><div><p class="text-muted small">Jami Natijalar</p><h3>${subs.length}</h3></div></div>
             </div>
+
             <div class="grid grid-2">
                 <div class="card animate-fade">
-                    <div class="flex-between"><h3>Tezkor Amallar</h3></div>
-                    <div class="grid grid-3 mt-4">
-                        <button class="btn btn-primary" id="btn-seed-iiau"><i data-lucide="database"></i> IIAU Strukturasi</button>
-                        <button class="btn btn-outline" id="btn-export-all"><i data-lucide="download"></i> Excel Export</button>
-                        <button class="btn btn-danger" id="btn-hard-reset" style="background:rgba(255, 91, 91, 0.1); color:var(--accent)"><i data-lucide="trash-2"></i> Tozalash</button>
+                    <div class="flex-between mb-4">
+                        <h3 class="flex-gap"><i data-lucide="trending-up" class="text-primary"></i> Tizim Faolligi</h3>
+                        <div class="badge badge-success">+${todaySubs} bugun</div>
                     </div>
+                    
+                    <div class="grid grid-2" style="gap:20px">
+                        <div>
+                            <p class="text-muted small uppercase font-weight-800 mb-3">Ommabop Testlar</p>
+                            ${topTests.length ? topTests.map(([title, count]) => `
+                                <div class="flex-between mb-2 p-2 hover-card" style="border-radius:10px; background:rgba(67, 24, 255, 0.03)">
+                                    <span class="small font-weight-700" style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">${title}</span>
+                                    <span class="badge badge-primary" style="font-size:0.7rem">${count}</span>
+                                </div>
+                            `).join('') : '<p class="text-muted small">Ma\'lumot yo\'q</p>'}
+                        </div>
+                        <div>
+                            <p class="text-muted small uppercase font-weight-800 mb-3">Eng Faol Guruhlar</p>
+                            ${topGroups.length ? topGroups.map(([name, count]) => `
+                                <div class="flex-between mb-2 p-2 hover-card" style="border-radius:10px; background:rgba(5, 205, 153, 0.03)">
+                                    <span class="small font-weight-700">${name}</span>
+                                    <span class="badge badge-success" style="font-size:0.7rem">${count}</span>
+                                </div>
+                            `).join('') : '<p class="text-muted small">Ma\'lumot yo\'q</p>'}
+                        </div>
+                    </div>
+
                 </div>
+
                 <div class="card animate-fade">
                     <div class="flex-between mb-3"><h3>Oxirgi Topshirganlar</h3><button class="btn btn-sm btn-outline" id="btn-view-all-res">Barchasi</button></div>
                     <div class="mt-2">${recentSubs.length ? recentSubs.map(d => `<div class="flex-between mb-3 p-2 border-bottom hover-card">
@@ -172,9 +214,7 @@ export async function renderAdmin(container) {
                 </div>
             </div>
         `;
-        
-        document.getElementById('btn-seed-iiau').onclick = seedIIAUData;
-        document.getElementById('btn-hard-reset').onclick = hardResetDatabase;
+
         document.getElementById('btn-view-all-res').onclick = () => { activeTab = 'results'; renderTab(); };
         if (window.lucide) window.lucide.createIcons();
     }
@@ -233,7 +273,7 @@ export async function renderAdmin(container) {
             input.click();
         };
         area.querySelectorAll('.edit-test').forEach(b => b.onclick = () => renderTestCreator(area, tests.find(t => t.id === b.dataset.id)));
-        area.querySelectorAll('.del-test').forEach(b => b.onclick = async () => { if(confirm("O'chirilsinmi?")) { await deleteDoc(doc(db,"tests",b.dataset.id)); clearCache(); renderTab(); } });
+        area.querySelectorAll('.del-test').forEach(b => b.onclick = async () => { if (confirm("O'chirilsinmi?")) { await deleteDoc(doc(db, "tests", b.dataset.id)); clearCache(); renderTab(); } });
     }
 
     async function renderTestCreator(area, existing = null) {
@@ -257,22 +297,33 @@ export async function renderAdmin(container) {
 
                 <form id="t-form" class="grid grid-3" style="gap: 20px; align-items: start;">
                     <!-- Sidebar: General Info & Interpretations -->
-                    <div style="grid-column: span 1; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 90px;">
+                    <div style="grid-column: span 1; display: flex; flex-direction: column; gap: 20px; position: sticky; top: 90px; max-height: calc(100vh - 110px); overflow-y: auto; padding-right: 5px;">
                         <div class="card" style="padding: 20px;">
                             <h4 class="mb-3 flex-gap"><i data-lucide="info" style="width:16px"></i> Umumiy ma'lumot</h4>
                             <div class="input-group mb-3">
                                 <label class="small">Test Nomi</label>
-                                <input type="text" id="t-title" required value="${existing?.title||''}" placeholder="Masalan: Temperament testi">
+                                <input type="text" id="t-title" required value="${existing?.title || ''}" placeholder="Masalan: Temperament testi">
+                            </div>
+                            <div class="input-group mb-3">
+                                <label class="small">Test Tavsifi (Faqat adminga ko'rinadi)</label>
+                                <textarea id="t-desc" placeholder="Test haqida qisqacha ma'lumot..." style="font-size:0.8rem; min-height:80px; padding:10px; border-radius:12px; border:1px solid var(--border); background:rgba(0,0,0,0.01); resize:none">${existing?.description || ''}</textarea>
                             </div>
                             <div class="input-group mb-3">
                                 <label class="small">Vaqt Chegarasi (daqiqa)</label>
-                                <input type="number" id="t-time" value="${existing?.timeLimit||30}">
+                                <input type="number" id="t-time" value="${existing?.timeLimit || 30}">
                             </div>
                             <label class="flex-gap hover-card p-2" style="cursor:pointer; border-radius:12px; border: 1px solid var(--border)">
                                 <input type="checkbox" id="t-important" style="width:18px; height:18px" ${existing?.isProfileData ? 'checked' : ''}>
                                 <div>
                                     <strong class="small" style="color:var(--primary)">Muhim (Profil uchun)</strong>
-                                    <p class="text-muted" style="font-size:0.65rem; margin:0">Natijalar talaba profilida saqlanadi</p>
+                                    <p class="text-muted" style="font-size:0.65rem; margin:0">Natijalar profilga saqlanadi</p>
+                                </div>
+                            </label>
+                            <label class="flex-gap hover-card p-2" style="cursor:pointer; border-radius:12px; border: 1px solid var(--border)">
+                                <input type="checkbox" id="t-hide-res" style="width:18px; height:18px" ${existing?.hideResults ? 'checked' : ''}>
+                                <div>
+                                    <strong class="small" style="color:var(--danger)">Natijani yashirish</strong>
+                                    <p class="text-muted" style="font-size:0.65rem; margin:0">Talabaga ball va xulosa ko'rsatilmaydi</p>
                                 </div>
                             </label>
                         </div>
@@ -318,100 +369,116 @@ export async function renderAdmin(container) {
             if (empty) empty.style.display = count === 0 ? 'block' : 'none';
         };
 
-        const addQ = (d=null) => {
-            const div = document.createElement('div'); 
-            div.className='card animate-fade'; 
-            div.style='background:white; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 16px; border-radius: 16px; transition: all 0.3s ease; position:relative';
-            
+        const addQ = (d = null) => {
+            const div = document.createElement('div');
+            div.className = 'card animate-fade';
+            div.style = 'background:white; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 16px; border-radius: 16px; transition: all 0.3s ease; position:relative';
+
             div.innerHTML = `
-                <div class="flex-between mb-3">
+                <div class="flex-between mb-3 q-header" style="cursor:pointer">
                     <div class="flex-gap">
                         <span class="q-number" style="background:var(--primary); color:white; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:6px; font-size:0.75rem; font-weight:800">1</span>
                         <strong style="color:var(--text); font-size: 0.85rem;">Savol</strong>
+                        <i data-lucide="chevron-down" class="toggle-icon" style="width:16px; transition: transform 0.3s ease;"></i>
                     </div>
                     <div class="flex-gap" style="background: rgba(0,0,0,0.03); padding: 4px 8px; border-radius: 10px;">
                         <button type="button" class="btn-icon move-up" title="Yuqoriga" style="padding: 2px;"><i data-lucide="chevron-up" style="width:16px"></i></button>
                         <button type="button" class="btn-icon move-down" title="Pastga" style="padding: 2px;"><i data-lucide="chevron-down" style="width:16px"></i></button>
                         <div style="width:1px; height:12px; background:rgba(0,0,0,0.1); margin:0 4px"></div>
-                        <button type="button" class="btn-icon text-danger" onclick="this.closest('.card').remove(); updateNumbers(); updateQCount();" style="padding: 2px;">
+                        <button type="button" class="btn-icon text-danger del-q" style="padding: 2px;">
                             <i data-lucide="trash-2" style="width:16px"></i>
                         </button>
                     </div>
                 </div>
                 
-                <div class="input-group mb-3">
-                    <textarea class="q-text cozy-input" required placeholder="Savol matnini bu yerga kiriting..." style="font-size: 0.9rem; min-height: 50px; padding: 12px; border-radius: 12px; font-weight: 700; line-height:1.4; border-color: rgba(67, 24, 255, 0.15); background: rgba(67, 24, 255, 0.01); resize:none">${d?.text||''}</textarea>
-                </div>
-
-                <div class="grid grid-2 mb-3" style="gap:15px">
-                    <div class="input-group">
-                        <label class="small text-muted mb-1">Savol Turi</label>
-                        <select class="q-type cozy-input" style="padding: 8px; font-size: 0.8rem; border-radius:10px">
-                            <option value="single" ${d?.type==='single'?'selected':''}>Yagona tanlov</option>
-                            <option value="weighted" ${d?.type==='weighted'?'selected':''}>Balli (Psixologik)</option>
-                            <option value="text" ${d?.type==='text'?'selected':''}>Ochiq javob (Text)</option>
-                            <option value="date" ${d?.type==='date'?'selected':''}>Sana (Date)</option>
-                        </select>
+                <div class="q-body animate-fade" style="transition: all 0.3s ease;">
+                    <div class="input-group mb-3">
+                        <textarea class="q-text cozy-input" required placeholder="Savol matnini bu yerga kiriting..." style="font-size: 0.9rem; min-height: 50px; padding: 12px; border-radius: 12px; font-weight: 700; line-height:1.4; border-color: rgba(67, 24, 255, 0.15); background: rgba(67, 24, 255, 0.01); resize:none">${d?.text || ''}</textarea>
                     </div>
-                    <div class="input-group">
-                        <label class="small text-muted mb-1">Qo'shimcha</label>
-                        <button type="button" class="btn btn-sm btn-outline toggle-adv w-100" style="padding: 8px; border-radius: 10px; font-size:0.75rem">
-                            <i data-lucide="settings" style="width:14px; margin-right:4px"></i> Sozlamalar
+
+                    <div class="grid grid-2 mb-3" style="gap:15px">
+                        <div class="input-group">
+                            <label class="small text-muted mb-1">Savol Turi</label>
+                            <select class="q-type cozy-input" style="padding: 8px; font-size: 0.8rem; border-radius:10px">
+                                <option value="single" ${d?.type === 'single' ? 'selected' : ''}>Yagona tanlov</option>
+                                <option value="weighted" ${d?.type === 'weighted' ? 'selected' : ''}>Balli (Psixologik)</option>
+                                <option value="text" ${d?.type === 'text' ? 'selected' : ''}>Ochiq javob (Text)</option>
+                                <option value="date" ${d?.type === 'date' ? 'selected' : ''}>Sana (Date)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label class="small text-muted mb-1">Qo'shimcha</label>
+                            <button type="button" class="btn btn-sm btn-outline toggle-adv w-100" style="padding: 8px; border-radius: 10px; font-size:0.75rem">
+                                <i data-lucide="settings" style="width:14px; margin-right:4px"></i> Sozlamalar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="adv-fields animate-fade" style="display:${(d?.qComment || d?.image) ? 'block' : 'none'}; background: rgba(244, 247, 254, 0.8); padding: 15px; border-radius: 14px; margin-bottom: 15px; border: 1px dashed var(--primary-light)">
+                        <div class="input-group mb-3">
+                            <label class="small text-muted mb-1">Profil uchun izoh (Savol kategoriyasi)</label>
+                            <input type="text" class="q-comment-label cozy-input" value="${d?.qComment || ''}" placeholder="Masalan: Oilaviy holati" style="font-size: 0.8rem; background:white">
+                        </div>
+                        <div class="input-group">
+                            <label class="small text-muted mb-1">Rasm (Ixtiyoriy)</label>
+                            <select class="q-image cozy-input" style="font-size:0.8rem; background:white">
+                                <option value="">Rasm yo'q</option>
+                                <option value="Picture1.png" ${d?.image === 'Picture1.png' ? 'selected' : ''}>Rasm 1</option>
+                                <option value="Picture2.png" ${d?.image === 'Picture2.png' ? 'selected' : ''}>Rasm 2</option>
+                            </select>
+                        </div>
+                        <div class="q-image-preview mt-3" style="${d?.image ? 'block' : 'none'}; text-align:center">
+                            <img src="${d?.image || ''}" style="max-height: 100px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm)">
+                        </div>
+                    </div>
+
+                    <div class="opt-area" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                    
+                    <div class="mt-3 flex-center">
+                        <button type="button" class="btn btn-sm btn-outline add-opt" style="border-radius: 10px; padding: 6px 20px; font-size: 0.75rem; background:white; ${(d?.type === 'text' || d?.type === 'date') ? 'display:none' : ''}">
+                            <i data-lucide="plus" style="width:14px; margin-right:4px"></i> Variant Qo'shish
                         </button>
                     </div>
                 </div>
-
-                <div class="adv-fields animate-fade" style="display:${(d?.qComment || d?.image) ? 'block' : 'none'}; background: rgba(244, 247, 254, 0.8); padding: 15px; border-radius: 14px; margin-bottom: 15px; border: 1px dashed var(--primary-light)">
-                    <div class="input-group mb-3">
-                        <label class="small text-muted mb-1">Profil uchun izoh (Savol kategoriyasi)</label>
-                        <input type="text" class="q-comment-label cozy-input" value="${d?.qComment||''}" placeholder="Masalan: Oilaviy holati" style="font-size: 0.8rem; background:white">
-                    </div>
-                    <div class="input-group">
-                        <label class="small text-muted mb-1">Rasm (Ixtiyoriy)</label>
-                        <select class="q-image cozy-input" style="font-size:0.8rem; background:white">
-                            <option value="">Rasm yo'q</option>
-                            <option value="Picture1.png" ${d?.image==='Picture1.png'?'selected':''}>Rasm 1</option>
-                            <option value="Picture2.png" ${d?.image==='Picture2.png'?'selected':''}>Rasm 2</option>
-                        </select>
-                    </div>
-                    <div class="q-image-preview mt-3" style="${d?.image ? 'block' : 'none'}; text-align:center">
-                        <img src="${d?.image || ''}" style="max-height: 100px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm)">
-                    </div>
-                </div>
-
-                <div class="opt-area" style="display: flex; flex-direction: column; gap: 8px;"></div>
-                
-                <div class="mt-3 flex-center">
-                    <button type="button" class="btn btn-sm btn-outline add-opt" style="border-radius: 10px; padding: 6px 20px; font-size: 0.75rem; background:white; ${(d?.type==='text'||d?.type==='date')?'display:none':''}">
-                        <i data-lucide="plus" style="width:14px; margin-right:4px"></i> Variant Qo'shish
-                    </button>
-                </div>
             `;
-            
+
             qC.appendChild(div);
             if (window.lucide) window.lucide.createIcons();
             updateQCount();
+
+            const qHeader = div.querySelector('.q-header');
+            const qBody = div.querySelector('.q-body');
+            const toggleIcon = div.querySelector('.toggle-icon');
+
+            qHeader.onclick = (e) => {
+                if (e.target.closest('.flex-gap:last-child')) return; // Don't toggle if buttons clicked
+                const isCollapsed = qBody.style.display === 'none';
+                qBody.style.display = isCollapsed ? 'block' : 'none';
+                toggleIcon.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(-90deg)';
+            };
+
+            div.querySelector('.del-q').onclick = () => { div.remove(); updateNumbers(); updateQCount(); };
 
             const oA = div.querySelector('.opt-area');
             const qTypeSelect = div.querySelector('.q-type');
             const addOptBtn = div.querySelector('.add-opt');
 
-            const addO = (od=null) => {
+            const addO = (od = null) => {
                 const type = qTypeSelect.value;
-                const odD = document.createElement('div'); 
-                odD.className='animate-fade';
+                const odD = document.createElement('div');
+                odD.className = 'animate-fade';
                 odD.style = 'background: white; padding: 10px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.06); margin-bottom: 8px; box-shadow:0 2px 5px rgba(0,0,0,0.02)';
-                
+
                 odD.innerHTML = `
                     <div class="flex-gap mb-2">
-                        <input type="text" class="o-text cozy-input" value="${od?.text||''}" required placeholder="Javob varianti..." style="background:rgba(0,0,0,0.02); border-color:transparent; flex: 1; padding: 8px 12px; font-size: 0.8rem; border-radius:8px">
-                        ${type==='weighted' ? `<input type="number" class="o-points cozy-input" value="${od?.points||0}" style="width:55px; text-align:center; padding: 8px; font-size: 0.8rem; border-radius:8px" title="Ball">` : ''}
+                        <input type="text" class="o-text cozy-input" value="${od?.text || ''}" required placeholder="Javob varianti..." style="background:rgba(0,0,0,0.02); border-color:transparent; flex: 1; padding: 8px 12px; font-size: 0.8rem; border-radius:8px">
+                        ${type === 'weighted' ? `<input type="number" class="o-points cozy-input" value="${od?.points || 0}" style="width:55px; text-align:center; padding: 8px; font-size: 0.8rem; border-radius:8px" title="Ball">` : ''}
                         <button type="button" class="btn-icon" onclick="this.parentElement.parentElement.remove()" style="color:var(--text-muted); padding: 4px; background:rgba(0,0,0,0.03); border-radius:8px"><i data-lucide="x" style="width:14px"></i></button>
                     </div>
                     <div class="profile-comment-area" style="padding-top: 6px; margin-top: 6px; border-top: 1px dashed rgba(0,0,0,0.05)">
                         <div class="flex-gap">
                             <i data-lucide="user-plus" style="width:14px; color:var(--success); opacity:0.6"></i>
-                            <input type="text" class="o-comment cozy-input" value="${od?.profileComment||''}" placeholder="Profil uchun izoh (Masalan: O'ziga ishongan)" style="font-size: 0.7rem; padding: 6px 10px; background: transparent; border-color: transparent;">
+                            <input type="text" class="o-comment cozy-input" value="${od?.profileComment || ''}" placeholder="Profil uchun izoh (Masalan: O'ziga ishongan)" style="font-size: 0.7rem; padding: 6px 10px; background: transparent; border-color: transparent;">
                         </div>
                     </div>
                 `;
@@ -472,7 +539,7 @@ export async function renderAdmin(container) {
             };
 
             div.querySelector('.add-opt').onclick = () => addO();
-            if(d?.options) d.options.forEach(o=>addO(o)); else if(d?.type!=='text' && d?.type !== 'date') addO();
+            if (d?.options) d.options.forEach(o => addO(o)); else if (d?.type !== 'text' && d?.type !== 'date') addO();
         };
 
         const updateNumbers = () => {
@@ -481,26 +548,27 @@ export async function renderAdmin(container) {
             });
         };
 
-        const addI = (d=null) => {
-            const div = document.createElement('div'); div.className='animate-fade';
-            div.style = 'background:rgba(0,0,0,0.02); padding:10px; border-radius:12px; margin-bottom:10px';
+        const addI = (d = null) => {
+            const div = document.createElement('div'); div.className = 'animate-fade';
+            div.style = 'background: linear-gradient(to right, rgba(67,24,255,0.02), rgba(67,24,255,0)); border: 1px dashed rgba(67,24,255,0.2); padding:15px; border-radius:14px; margin-bottom:12px';
             div.innerHTML = `
-                <div class="flex-gap mb-2">
-                    <div class="flex-gap" style="background:white; padding:4px 8px; border-radius:8px; border:1px solid var(--border)">
-                        <input type="number" class="i-min" value="${d?.min||0}" placeholder="Min" style="width:45px; border:none; background:transparent; font-size:0.75rem; text-align:center">
-                        <span style="opacity:0.3">-</span>
-                        <input type="number" class="i-max" value="${d?.max||10}" placeholder="Max" style="width:45px; border:none; background:transparent; font-size:0.75rem; text-align:center">
+                <div class="flex-between mb-2">
+                    <div class="flex-gap" style="background:white; padding:8px 15px; border-radius:12px; border:1px solid rgba(0,0,0,0.1); box-shadow: 0 2px 8px rgba(0,0,0,0.03)">
+                        <span class="small font-weight-800 text-muted" style="margin-right:5px">BALL:</span>
+                        <input type="number" class="i-min" value="${d?.min || 0}" placeholder="Min" style="width:65px; border:1px solid rgba(67,24,255,0.1); background:rgba(67,24,255,0.02); border-radius:8px; font-size:0.95rem; text-align:center; font-weight:800; color:var(--primary); padding:4px">
+                        <span style="opacity:0.3; font-weight:800; margin:0 5px">-</span>
+                        <input type="number" class="i-max" value="${d?.max || 10}" placeholder="Max" style="width:65px; border:1px solid rgba(67,24,255,0.1); background:rgba(67,24,255,0.02); border-radius:8px; font-size:0.95rem; text-align:center; font-weight:800; color:var(--primary); padding:4px">
                     </div>
-                    <button type="button" class="btn-icon text-danger" onclick="this.closest('.animate-fade').remove()" style="margin-left:auto"><i data-lucide="trash-2" style="width:14px"></i></button>
+                    <button type="button" class="btn-icon text-danger" onclick="this.closest('.animate-fade').remove()" style="background: rgba(255,91,91,0.1); border-radius:8px"><i data-lucide="trash-2" style="width:16px"></i></button>
                 </div>
-                <textarea class="i-text cozy-input" placeholder="Xulosa matni..." style="font-size:0.75rem; min-height:40px; border-radius:8px; background:white" required>${d?.text||''}</textarea>
+                <textarea class="i-text cozy-input" placeholder="Bu ball oraliģi uchun xulosa matnini kiriting..." style="font-size:0.85rem; min-height:60px; border-radius:10px; background:white; font-weight:600" required>${d?.text || ''}</textarea>
             `;
             iC.appendChild(div);
             if (window.lucide) window.lucide.createIcons();
         };
 
-        if(existing?.questions) existing.questions.forEach(q=>addQ(q)); else addQ();
-        if(existing?.interpretations) existing.interpretations.forEach(i=>addI(i)); else addI({min:0, max:10, text: 'Normal'});
+        if (existing?.questions) existing.questions.forEach(q => addQ(q)); else addQ();
+        if (existing?.interpretations) existing.interpretations.forEach(i => addI(i)); else addI({ min: 0, max: 10, text: 'Normal' });
 
         document.getElementById('add-q').onclick = () => addQ();
         document.getElementById('add-i').onclick = () => addI();
@@ -509,13 +577,13 @@ export async function renderAdmin(container) {
             e.preventDefault();
             const qs = Array.from(qC.querySelectorAll(':scope > .card')).map(c => {
                 const type = c.querySelector('.q-type').value;
-                const options = (type === 'text' || type === 'date') ? [] : 
+                const options = (type === 'text' || type === 'date') ? [] :
                     Array.from(c.querySelectorAll('.opt-area > div')).map(o => ({
                         text: o.querySelector('.o-text').value,
                         points: parseFloat(o.querySelector('.o-points')?.value || 0),
                         profileComment: o.querySelector('.o-comment')?.value || ''
                     }));
-                
+
                 return {
                     text: c.querySelector('.q-text').value,
                     qComment: c.querySelector('.q-comment-label').value,
@@ -524,11 +592,20 @@ export async function renderAdmin(container) {
                     options: options
                 };
             });
-            
-            const is = Array.from(iC.querySelectorAll(':scope > .animate-fade')).map(c=>({ min: parseFloat(c.querySelector('.i-min').value), max: parseFloat(c.querySelector('.i-max').value), text: c.querySelector('.i-text').value }));
+
+            const is = Array.from(iC.querySelectorAll(':scope > .animate-fade')).map(c => ({ min: parseFloat(c.querySelector('.i-min').value), max: parseFloat(c.querySelector('.i-max').value), text: c.querySelector('.i-text').value }));
             const isProfileData = document.getElementById('t-important').checked;
-            const p = { title: document.getElementById('t-title').value, timeLimit: parseInt(document.getElementById('t-time').value), questions: qs, interpretations: is, isProfileData };
-            if(existing) {
+            const hideResults = document.getElementById('t-hide-res').checked;
+            const p = {
+                title: document.getElementById('t-title').value,
+                description: document.getElementById('t-desc').value,
+                timeLimit: parseInt(document.getElementById('t-time').value),
+                questions: qs,
+                interpretations: is,
+                isProfileData,
+                hideResults
+            };
+            if (existing) {
                 await updateDoc(doc(db, "tests", existing.id), p);
                 // Update testTitle in existing assignments
                 if (existing.title !== p.title) {
@@ -560,9 +637,9 @@ export async function renderAdmin(container) {
                     </div>
                 </div>
                 <div class="grid grid-3">${facs.map(f => {
-                    const fGs = groups.filter(g => (g.faculty || 'Akademiya') === f);
-                    const sCount = fGs.reduce((acc, g) => acc + (g.students?.length || 0), 0);
-                    return `
+                const fGs = groups.filter(g => (g.faculty || 'Akademiya') === f);
+                const sCount = fGs.reduce((acc, g) => acc + (g.students?.length || 0), 0);
+                return `
                     <div class="card view-fac" data-fac="${f}" style="cursor:pointer; padding: 2.5rem;">
                         <div class="flex-between">
                             <div><h1 style="color:var(--primary); font-size:1.8rem; font-weight:800">${f}</h1><p class="text-muted mt-1">${fGs.length} guruh • ${sCount} talaba</p></div>
@@ -572,8 +649,8 @@ export async function renderAdmin(container) {
                             </div>
                         </div>
                     </div>`;
-                }).join('')}</div>`;
-            
+            }).join('')}</div>`;
+
             document.getElementById('btn-import-students').onclick = () => {
                 const input = document.createElement('input'); input.type = 'file'; input.accept = '.csv';
                 input.onchange = async (e) => {
@@ -585,7 +662,7 @@ export async function renderAdmin(container) {
                         const text = event.target.result;
                         const lines = text.split('\n').map(l => l.trim()).filter(l => l);
                         const headers = lines[0].split(',').map(h => h.trim());
-                        
+
                         // Faculty,Direction,Course,Group,StudentName
                         const data = lines.slice(1).map(line => {
                             const values = line.split(',').map(v => v.trim());
@@ -603,7 +680,7 @@ export async function renderAdmin(container) {
                         const groupsMap = {};
                         data.forEach(item => {
                             const uniqueKey = `${item.faculty}|${item.direction}|${item.course}|${item.group}`;
-                            if(!groupsMap[uniqueKey]) {
+                            if (!groupsMap[uniqueKey]) {
                                 groupsMap[uniqueKey] = {
                                     faculty: item.faculty,
                                     direction: item.direction,
@@ -615,7 +692,7 @@ export async function renderAdmin(container) {
                             groupsMap[uniqueKey].students.push({ name: item.student, completedTests: [] });
                         });
 
-                        for(const gKey in groupsMap) {
+                        for (const gKey in groupsMap) {
                             await addDoc(collection(db, "groups"), groupsMap[gKey]);
                         }
                         showToast("Ma'lumotlar muvaffaqiyatli import qilindi!", "success");
@@ -628,7 +705,7 @@ export async function renderAdmin(container) {
             area.querySelectorAll('.view-fac').forEach(c => {
                 c.onclick = (e) => {
                     if (e.target.closest('.del-fac')) return;
-                    currentSubView='faculty'; subViewParams.faculty=c.dataset.fac; renderTab();
+                    currentSubView = 'faculty'; subViewParams.faculty = c.dataset.fac; renderTab();
                 };
             });
 
@@ -641,7 +718,7 @@ export async function renderAdmin(container) {
                     showToast("Fakultet o'chirildi", "success"); clearCache(); renderTab();
                 };
             });
-            document.getElementById('btn-add-fac').onclick = () => showModal('Yangi Fakultet', '<input type="text" id="n-f" placeholder="Nomi...">', async (m)=>{ const v=m.querySelector('#n-f').value; if(v){ await addDoc(collection(db,"groups"), { faculty:v, direction:'Yangi Yo\'nalish', course: 1, name:'Yangi Guruh', students:[] }); clearCache(); renderTab(); } return true; });
+            document.getElementById('btn-add-fac').onclick = () => showModal('Yangi Fakultet', '<input type="text" id="n-f" placeholder="Nomi...">', async (m) => { const v = m.querySelector('#n-f').value; if (v) { await addDoc(collection(db, "groups"), { faculty: v, direction: 'Yangi Yo\'nalish', course: 1, name: 'Yangi Guruh', students: [] }); clearCache(); renderTab(); } return true; });
         } else if (currentSubView === 'faculty') {
             const fac = subViewParams.faculty;
             const courses = [1, 2, 3, 4];
@@ -651,22 +728,22 @@ export async function renderAdmin(container) {
                     <h2>${fac} Kurslari</h2>
                 </div>
                 <div class="grid grid-4">${courses.map(c => {
-                    const cGs = groups.filter(g => (g.faculty || 'Akademiya') === fac && parseInt(g.course) === c);
-                    const sCount = cGs.reduce((acc, g) => acc + (g.students?.length || 0), 0);
-                    return `
+                const cGs = groups.filter(g => (g.faculty || 'Akademiya') === fac && parseInt(g.course) === c);
+                const sCount = cGs.reduce((acc, g) => acc + (g.students?.length || 0), 0);
+                return `
                     <div class="card view-course" data-course="${c}" style="cursor:pointer; padding:2rem; text-align:center">
                         <h1 style="color:var(--primary); font-size:3rem; font-weight:800">${c}</h1>
                         <p class="text-muted">KURS</p>
                         <div class="badge badge-info mt-2">${cGs.length} guruh • ${sCount} talaba</div>
                     </div>`;
-                }).join('')}</div>`;
-            
-            document.getElementById('btn-back').onclick = () => { currentSubView='main'; renderTab(); };
-            area.querySelectorAll('.view-course').forEach(c => c.onclick = () => { currentSubView='course'; subViewParams.course=parseInt(c.dataset.course); renderTab(); });
+            }).join('')}</div>`;
+
+            document.getElementById('btn-back').onclick = () => { currentSubView = 'main'; renderTab(); };
+            area.querySelectorAll('.view-course').forEach(c => c.onclick = () => { currentSubView = 'course'; subViewParams.course = parseInt(c.dataset.course); renderTab(); });
 
         } else if (currentSubView === 'course') {
             const { faculty, course } = subViewParams;
-            const dirs = [...new Set(groups.filter(g => (g.faculty||'Akademiya') === faculty && parseInt(g.course) === course).map(g => g.direction || 'Yo\'nalishsiz'))].sort();
+            const dirs = [...new Set(groups.filter(g => (g.faculty || 'Akademiya') === faculty && parseInt(g.course) === course).map(g => g.direction || 'Yo\'nalishsiz'))].sort();
             area.innerHTML = `
                 <div class="flex-between mb-3">
                     <button class="btn btn-icon btn-outline" id="btn-back"><i data-lucide="arrow-left"></i></button>
@@ -674,22 +751,22 @@ export async function renderAdmin(container) {
                     <button class="btn btn-primary" id="btn-add-dir">+ Yo'nalish</button>
                 </div>
                 <div class="grid grid-3">${dirs.map(d => {
-                    const dGs = groups.filter(g => (g.faculty||'Akademiya') === faculty && parseInt(g.course) === course && g.direction === d);
-                    const sCount = dGs.reduce((acc, g) => acc + (g.students?.length || 0), 0);
-                    return `
+                const dGs = groups.filter(g => (g.faculty || 'Akademiya') === faculty && parseInt(g.course) === course && g.direction === d);
+                const sCount = dGs.reduce((acc, g) => acc + (g.students?.length || 0), 0);
+                return `
                     <div class="card view-dir" data-dir="${d}" style="cursor:pointer; padding:2rem">
                         <div class="flex-between">
                             <div><h3>${d}</h3><p class="text-muted small">${dGs.length} guruh • ${sCount} talaba</p></div>
                             <button class="btn-icon text-danger del-dir" data-dir="${d}"><i data-lucide="trash-2"></i></button>
                         </div>
                     </div>`;
-                }).join('')}</div>`;
-            
-            document.getElementById('btn-back').onclick = () => { currentSubView='faculty'; renderTab(); };
+            }).join('')}</div>`;
+
+            document.getElementById('btn-back').onclick = () => { currentSubView = 'faculty'; renderTab(); };
             area.querySelectorAll('.view-dir').forEach(c => {
                 c.onclick = (e) => {
                     if (e.target.closest('.del-dir')) return;
-                    currentSubView='direction'; subViewParams.direction=c.dataset.dir; renderTab();
+                    currentSubView = 'direction'; subViewParams.direction = c.dataset.dir; renderTab();
                 };
             });
 
@@ -702,11 +779,11 @@ export async function renderAdmin(container) {
                     showToast("Yo'nalish o'chirildi", "success"); clearCache(); renderTab();
                 };
             });
-            document.getElementById('btn-add-dir').onclick = () => showModal('Yangi Yo\'nalish', '<input type="text" id="n-d" placeholder="Nomi...">', async (m)=>{ const v=m.querySelector('#n-d').value; if(v){ await addDoc(collection(db,"groups"), { faculty, course, direction:v, name:'Yangi Guruh', students:[] }); clearCache(); renderTab(); } return true; });
+            document.getElementById('btn-add-dir').onclick = () => showModal('Yangi Yo\'nalish', '<input type="text" id="n-d" placeholder="Nomi...">', async (m) => { const v = m.querySelector('#n-d').value; if (v) { await addDoc(collection(db, "groups"), { faculty, course, direction: v, name: 'Yangi Guruh', students: [] }); clearCache(); renderTab(); } return true; });
 
         } else if (currentSubView === 'direction') {
             const { faculty, course, direction } = subViewParams;
-            const dGs = groups.filter(g => (g.faculty||'Akademiya') === faculty && parseInt(g.course) === course && (g.direction||'Yo\'nalishsiz') === direction);
+            const dGs = groups.filter(g => (g.faculty || 'Akademiya') === faculty && parseInt(g.course) === course && (g.direction || 'Yo\'nalishsiz') === direction);
             area.innerHTML = `
                 <div class="flex-between mb-3">
                     <button class="btn btn-icon btn-outline" id="btn-back"><i data-lucide="arrow-left"></i></button>
@@ -720,12 +797,12 @@ export async function renderAdmin(container) {
                             <button class="btn-icon text-danger del-group" data-id="${g.id}"><i data-lucide="trash-2"></i></button>
                         </div>
                     </div>`).join('')}</div>`;
-            
-            document.getElementById('btn-back').onclick = () => { currentSubView='course'; renderTab(); };
+
+            document.getElementById('btn-back').onclick = () => { currentSubView = 'course'; renderTab(); };
             area.querySelectorAll('.view-group').forEach(c => {
                 c.onclick = (e) => {
                     if (e.target.closest('.del-group')) return;
-                    currentSubView='students_list'; subViewParams.groupId=c.dataset.id; renderTab();
+                    currentSubView = 'students_list'; subViewParams.groupId = c.dataset.id; renderTab();
                 };
             });
 
@@ -737,7 +814,7 @@ export async function renderAdmin(container) {
                     showToast("Guruh o'chirildi", "success"); clearCache(); renderTab();
                 };
             });
-            document.getElementById('btn-add-group').onclick = () => showModal('Yangi Guruh', '<input type="text" id="n-g" placeholder="Nomi...">', async (m)=>{ const v=m.querySelector('#n-g').value; if(v){ await addDoc(collection(db,"groups"), { faculty, course, direction, name:v, students:[] }); clearCache(); renderTab(); } return true; });
+            document.getElementById('btn-add-group').onclick = () => showModal('Yangi Guruh', '<input type="text" id="n-g" placeholder="Nomi...">', async (m) => { const v = m.querySelector('#n-g').value; if (v) { await addDoc(collection(db, "groups"), { faculty, course, direction, name: v, students: [] }); clearCache(); renderTab(); } return true; });
 
         } else if (currentSubView === 'students_list') {
             const g = groups.find(gr => gr.id === subViewParams.groupId);
@@ -752,7 +829,7 @@ export async function renderAdmin(container) {
             const renderList = () => {
                 const filtered = (g.students || []).filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
                 const visible = filtered.slice(0, displayLimit);
-                
+
                 area.innerHTML = `
                     <div class="flex-between mb-4">
                         <div class="flex-gap">
@@ -783,9 +860,9 @@ export async function renderAdmin(container) {
 
                 if (window.lucide) window.lucide.createIcons();
 
-                document.getElementById('btn-back').onclick = () => { currentSubView='direction'; renderTab(); };
+                document.getElementById('btn-back').onclick = () => { currentSubView = 'direction'; renderTab(); };
                 document.getElementById('st-search').oninput = (e) => { searchQuery = e.target.value; renderList(); document.getElementById('st-search').focus(); };
-                if(document.getElementById('btn-load-more')) {
+                if (document.getElementById('btn-load-more')) {
                     document.getElementById('btn-load-more').onclick = () => { displayLimit += 12; renderList(); };
                 }
 
@@ -800,15 +877,15 @@ export async function renderAdmin(container) {
                         showToast("Talaba o'chirildi", "success"); clearCache(); renderTab();
                     };
                 });
-                document.getElementById('btn-add-student').onclick = () => showModal('Guruhga Talabalarni Qo\'shish', '<p class="small text-muted mb-2">Har bir talaba ismini yangi qatordan yozing:</p><textarea id="n-s-bulk" class="cozy-input" placeholder="Ismoilov Ali\nKarimova Gulnoza..." style="height:200px"></textarea>', async (m)=>{ 
-                    const val = m.querySelector('#n-s-bulk').value; 
-                    if(val){ 
+                document.getElementById('btn-add-student').onclick = () => showModal('Guruhga Talabalarni Qo\'shish', '<p class="small text-muted mb-2">Har bir talaba ismini yangi qatordan yozing:</p><textarea id="n-s-bulk" class="cozy-input" placeholder="Ismoilov Ali\nKarimova Gulnoza..." style="height:200px"></textarea>', async (m) => {
+                    const val = m.querySelector('#n-s-bulk').value;
+                    if (val) {
                         const newNames = val.split('\n').map(n => n.trim()).filter(n => n);
                         const studentsToAdd = newNames.map(n => ({ name: n, completedTests: [] }));
-                        await updateDoc(doc(db,"groups",g.id), { students: [...(g.students || []), ...studentsToAdd] }); 
-                        clearCache(); renderTab(); 
-                    } 
-                    return true; 
+                        await updateDoc(doc(db, "groups", g.id), { students: [...(g.students || []), ...studentsToAdd] });
+                        clearCache(); renderTab();
+                    }
+                    return true;
                 });
             };
             renderList();
@@ -820,7 +897,7 @@ export async function renderAdmin(container) {
         pageTitle.innerText = "Tutorlar";
         const gs = await fetchData("groups");
         const tutors = [...new Set(gs.map(g => g.tutor))].filter(t => t).sort();
-        
+
         area.innerHTML = `
             <div class="flex-between mb-4">
                 <h2>Barcha Tutorlar</h2>
@@ -828,8 +905,8 @@ export async function renderAdmin(container) {
             </div>
             <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
                 ${tutors.map(t => {
-                    const tGs = gs.filter(g => g.tutor === t);
-                    return `
+            const tGs = gs.filter(g => g.tutor === t);
+            return `
                     <div class="card animate-fade" style="padding: 1.5rem;">
                         <div class="flex-between">
                             <div class="flex-gap">
@@ -845,86 +922,121 @@ export async function renderAdmin(container) {
                             </div>
                         </div>
                     </div>`;
-                }).join('')}
+        }).join('')}
             </div>
         `;
 
-        document.getElementById('btn-add-tutor').onclick = () => {
-            const allGs = gs.sort((x,y) => x.name.localeCompare(y.name));
+        const renderTutorModal = (existingTutor = null) => {
+            const oldName = existingTutor || '';
+            const selectableGs = gs.filter(g => !g.tutor || g.tutor === oldName).sort((x, y) => x.name.localeCompare(y.name));
+            const faculties = [...new Set(gs.map(g => g.faculty || 'Akademiya'))].sort();
+            const courses = [1, 2, 3, 4];
+
+            // Persistent state for selections
+            let currentSelectedIds = new Set(selectableGs.filter(g => g.tutor === oldName).map(g => g.id));
+            const initialSelectedIds = new Set(currentSelectedIds);
+
             const html = `
-                <div class="input-group mb-3"><label>Tutor ismi</label><input type="text" id="t-n" placeholder="Tutor ismi..."></div>
-                <label class="mb-2 d-block">Guruhlarni biriktirish:</label>
-                <div style="max-height: 250px; overflow-y: auto; border: 1px solid rgba(0,0,0,0.05); border-radius:15px; padding:10px">
-                    ${allGs.map(g => `
-                        <label class="flex-gap mb-2 p-2 hover-card" style="cursor:pointer; border-radius:10px">
-                            <input type="checkbox" class="et-g" value="${g.id}" style="width:18px; height:18px">
-                            <div><strong>${g.name}</strong> <span class="small text-muted">(${g.course}-kurs, ${g.faculty || '---'})</span></div>
-                        </label>
-                    `).join('')}
+                <div class="input-group mb-3"><label>Tutor ismi</label><input type="text" id="tm-n" value="${oldName}" placeholder="Tutor ismi..."></div>
+                
+                <div class="flex-between mb-2">
+                    <label style="font-weight:700">Guruhlarni biriktirish (Tanlangan: <span id="tm-count">${currentSelectedIds.size}</span>):</label>
+                </div>
+
+                <div class="grid grid-3 mb-3" style="gap:10px">
+                    <div class="input-group">
+                        <select id="tm-fac" style="font-size:0.8rem; padding:8px"><option value="all">Fakultet (Hammasi)</option>${faculties.map(f => `<option value="${f}">${f}</option>`).join('')}</select>
+                    </div>
+                    <div class="input-group">
+                        <select id="tm-course" style="font-size:0.8rem; padding:8px"><option value="all">Kurs (Hammasi)</option>${courses.map(c => `<option value="${c}">${c}-kurs</option>`).join('')}</select>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="tm-search" placeholder="Qidirish..." style="font-size:0.8rem; padding:8px">
+                    </div>
+                </div>
+
+                <div id="tm-list-container" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border); border-radius:15px; padding:10px; background:rgba(0,0,0,0.01)">
+                    <div id="tm-list" class="grid grid-2" style="gap:8px"></div>
                 </div>
             `;
 
-            showModal('Yangi Tutor', html, async (m) => {
-                const n = m.querySelector('#t-n').value;
-                const selectedGIds = Array.from(m.querySelectorAll('.et-g:checked')).map(i => i.value);
-                if(n) {
-                    for(const id of selectedGIds) await updateDoc(doc(db, "groups", id), { tutor: n });
-                    showToast("Tutor yaratildi va guruhlarga biriktirildi", "success");
-                    clearCache(); renderTab();
+            const modal = showModal(existingTutor ? 'Tutorni tahrirlash' : 'Yangi Tutor', html, async (m) => {
+                const newName = m.querySelector('#tm-n').value;
+                if (!newName) { showToast("Tutor ismini kiriting", "warning"); return false; }
+
+                // 1. Assign selected groups
+                for (const id of currentSelectedIds) {
+                    await updateDoc(doc(db, "groups", id), { tutor: newName });
                 }
+                
+                // 2. Remove from groups that were deselected
+                if (existingTutor) {
+                    for (const id of initialSelectedIds) {
+                        if (!currentSelectedIds.has(id)) {
+                            await updateDoc(doc(db, "groups", id), { tutor: "" });
+                        }
+                    }
+                }
+
+                showToast("Muvaffaqiyatli saqlandi", "success");
+                clearCache(); renderTab();
                 return true;
-            });
+            }, "Saqlash");
+
+            const listArea = modal.querySelector('#tm-list');
+            const fSearch = modal.querySelector('#tm-search');
+            const fFac = modal.querySelector('#tm-fac');
+            const fCourse = modal.querySelector('#tm-course');
+            const countLabel = modal.querySelector('#tm-count');
+
+            const updateList = () => {
+                const q = fSearch.value.toLowerCase();
+                const fac = fFac.value;
+                const crs = fCourse.value;
+
+                const filtered = selectableGs.filter(g => {
+                    const nameMatch = g.name.toLowerCase().includes(q);
+                    const facMatch = fac === 'all' || (g.faculty || 'Akademiya') === fac;
+                    const crsMatch = crs === 'all' || String(g.course) === crs;
+                    return nameMatch && facMatch && crsMatch;
+                });
+
+                listArea.innerHTML = filtered.map(g => `
+                    <label class="flex-gap p-2 hover-card" style="cursor:pointer; border-radius:10px; border: 1px solid rgba(0,0,0,0.03); background: white">
+                        <input type="checkbox" class="et-g" value="${g.id}" ${currentSelectedIds.has(g.id) ? 'checked' : ''} style="width:16px; height:16px">
+                        <div style="font-size:0.8rem"><strong>${g.name}</strong> <p class="text-muted small" style="margin:0">${g.course}-kurs • ${g.faculty || '---'}</p></div>
+                    </label>
+                `).join('') || '<p class="text-muted small p-2" style="grid-column: 1/-1">Guruhlar topilmadi</p>';
+                
+                // Attach individual listeners to checkboxes
+                listArea.querySelectorAll('.et-g').forEach(cb => {
+                    cb.onchange = (e) => {
+                        if (e.target.checked) currentSelectedIds.add(e.target.value);
+                        else currentSelectedIds.delete(e.target.value);
+                        countLabel.innerText = currentSelectedIds.size;
+                    };
+                });
+            };
+
+            fSearch.oninput = updateList;
+            fFac.onchange = updateList;
+            fCourse.onchange = updateList;
+            updateList();
         };
+
+        document.getElementById('btn-add-tutor').onclick = () => renderTutorModal();
 
         area.querySelectorAll('.del-tutor').forEach(b => {
             b.onclick = async () => {
-                if(!confirm(`"${b.dataset.name}" tutorni o'chirmoqchimisiz? Guruhlar tutorsiz qoladi.`)) return;
+                if (!confirm(`"${b.dataset.name}" tutorni o'chirmoqchimisiz? Guruhlar tutorsiz qoladi.`)) return;
                 const affected = gs.filter(g => g.tutor === b.dataset.name);
-                for(const g of affected) await updateDoc(doc(db, "groups", g.id), { tutor: "" });
+                for (const g of affected) await updateDoc(doc(db, "groups", g.id), { tutor: "" });
                 showToast("Tutor o'chirildi", "success"); clearCache(); renderTab();
             };
         });
 
         area.querySelectorAll('.edit-tutor').forEach(b => {
-            b.onclick = async () => {
-                const oldName = b.dataset.name;
-                const tGs = gs.filter(g => g.tutor === oldName);
-                const allGs = gs.sort((x,y) => x.name.localeCompare(y.name));
-                
-                const html = `
-                    <div class="input-group mb-3"><label>Tutor ismi</label><input type="text" id="et-n" value="${oldName}"></div>
-                    <label class="mb-2 d-block">Biriktirilgan guruhlar:</label>
-                    <div style="max-height: 300px; overflow-y: auto; border: 1px solid rgba(0,0,0,0.05); border-radius:15px; padding:10px">
-                        ${allGs.map(g => `
-                            <label class="flex-gap mb-2 p-2 hover-card" style="cursor:pointer; border-radius:10px">
-                                <input type="checkbox" class="et-g" value="${g.id}" ${g.tutor === oldName ? 'checked' : ''} style="width:18px; height:18px">
-                                <div><strong>${g.name}</strong> <span class="small text-muted">(${g.course}-kurs, ${g.faculty || '---'})</span></div>
-                            </label>
-                        `).join('')}
-                    </div>
-                `;
-
-                showModal('Tutorni tahrirlash', html, async (m) => {
-                    const newName = m.querySelector('#et-n').value;
-                    const selectedGIds = Array.from(m.querySelectorAll('.et-g:checked')).map(i => i.value);
-                    const unselectedGIds = Array.from(m.querySelectorAll('.et-g:not(:checked)')).map(i => i.value);
-
-                    // 1. Update name for groups that still have this tutor
-                    for(const g of tGs) {
-                        if (newName !== oldName) await updateDoc(doc(db, "groups", g.id), { tutor: newName });
-                    }
-                    // 2. Assign new groups
-                    for(const id of selectedGIds) await updateDoc(doc(db, "groups", id), { tutor: newName });
-                    // 3. Remove from unselected (only if they were assigned to this tutor)
-                    for(const id of unselectedGIds) {
-                        const g = gs.find(x => x.id === id);
-                        if(g.tutor === oldName || g.tutor === newName) await updateDoc(doc(db, "groups", id), { tutor: "" });
-                    }
-
-                    showToast("Tutor ma'lumotlari yangilandi", "success"); clearCache(); renderTab();
-                    return true;
-                });
-            };
+            b.onclick = () => renderTutorModal(b.dataset.name);
         });
         if (window.lucide) window.lucide.createIcons();
     }
@@ -946,14 +1058,14 @@ export async function renderAdmin(container) {
         let displayLimit = 10;
         let searchQuery = "";
 
-        const show = (q='') => {
-            const ql = q.toLowerCase(); const list = []; 
-            groups.forEach(g => (g.students || []).forEach(s => { 
-                if(s.name.toLowerCase().includes(ql) || g.name.toLowerCase().includes(ql)) {
-                    list.push({...s, gid: g.id, gname: g.name, course: g.course, fac: g.faculty || 'Akademiya'}); 
+        const show = (q = '') => {
+            const ql = q.toLowerCase(); const list = [];
+            groups.forEach(g => (g.students || []).forEach(s => {
+                if (s.name.toLowerCase().includes(ql) || g.name.toLowerCase().includes(ql)) {
+                    list.push({ ...s, gid: g.id, gname: g.name, course: g.course, fac: g.faculty || 'Akademiya' });
                 }
             }));
-            
+
             const resultsArea = document.getElementById('s-results');
             const filtered = list;
             const visible = filtered.slice(0, displayLimit);
@@ -988,11 +1100,11 @@ export async function renderAdmin(container) {
             resultsArea.querySelectorAll('.v-prof-search').forEach(c => {
                 c.onclick = () => openStudentProfile(c.dataset.name, c.dataset.gid);
             });
-            
+
             if (window.lucide) window.lucide.createIcons();
         };
 
-        document.getElementById('s-search').oninput = (e) => { displayLimit = 10; show(e.target.value); }; 
+        document.getElementById('s-search').oninput = (e) => { displayLimit = 10; show(e.target.value); };
         show();
     }
 
@@ -1000,20 +1112,20 @@ export async function renderAdmin(container) {
     async function renderAssignTab(area) {
         pageTitle.innerText = "Biriktirish (Havolalar)";
         const [tests, assigns, groups] = await Promise.all([fetchData("tests"), fetchData("assignments"), fetchData("groups")]);
-        
+
         const facs = [...new Set(groups.map(g => g.faculty || 'Akademiya'))].sort();
-        
+
         area.innerHTML = `
             <div class="card mb-4 animate-fade">
                 <div class="grid grid-2 mb-4" style="gap:20px">
                     <div class="input-group">
                         <label>Testni tanlang</label>
                         <select id="a-test" style="font-weight:700; color:var(--primary)">
-                            ${tests.map(t=>`<option value="${t.id}">${t.title}</option>`).join('')}
+                            ${tests.map(t => `<option value="${t.id}">${t.title}</option>`).join('')}
                         </select>
                     </div>
                     <div class="grid grid-2">
-                        <div class="input-group"><label>Fakultet</label><select id="a-fac-filter"><option value="all">Barchasi</option>${facs.map(f=>`<option value="${f}">${f}</option>`).join('')}</select></div>
+                        <div class="input-group"><label>Fakultet</label><select id="a-fac-filter"><option value="all">Barchasi</option>${facs.map(f => `<option value="${f}">${f}</option>`).join('')}</select></div>
                         <div class="input-group"><label>Kurs</label><select id="a-course-filter"><option value="all">Barchasi</option><option value="1">1-kurs</option><option value="2">2-kurs</option><option value="3">3-kurs</option><option value="4">4-kurs</option></select></div>
                     </div>
                 </div>
@@ -1046,18 +1158,18 @@ export async function renderAdmin(container) {
         const aTest = document.getElementById('a-test');
         const aFac = document.getElementById('a-fac-filter');
         const aCourse = document.getElementById('a-course-filter');
-        
+
         const renderGroupList = () => {
             const f = aFac.value;
             const c = aCourse.value;
             const tId = aTest.value;
-            
+
             const filtered = groups.filter(g => {
                 const facMatch = f === 'all' || (g.faculty || 'Akademiya') === f;
                 const courseMatch = c === 'all' || parseInt(g.course) === parseInt(c);
                 return facMatch && courseMatch;
-            }).sort((a,b) => a.name.localeCompare(b.name));
-            
+            }).sort((a, b) => a.name.localeCompare(b.name));
+
             gListArea.innerHTML = filtered.map(g => {
                 const isAssigned = assigns.find(a => a.testId === tId && a.groupId === g.id);
                 return `
@@ -1074,15 +1186,15 @@ export async function renderAdmin(container) {
         };
 
         renderGroupList();
-        
+
         aFac.onchange = renderGroupList;
         aCourse.onchange = renderGroupList;
         aTest.onchange = renderGroupList;
-        
+
         document.getElementById('btn-sel-all').onclick = () => {
             area.querySelectorAll('.g-check:not([disabled])').forEach(cb => cb.checked = true);
         };
-        
+
         document.getElementById('btn-sel-rem').onclick = () => {
             area.querySelectorAll('.g-check:not([disabled])').forEach(cb => cb.checked = true);
         };
@@ -1090,10 +1202,10 @@ export async function renderAdmin(container) {
         const renderAssigns = () => {
             const listArea = document.getElementById('assign-list-area');
             let baseUrl = window.location.origin + window.location.pathname;
-            
+
             listArea.innerHTML = tests.map(test => {
                 const tAs = assigns.filter(a => a.testId === test.id);
-                if(!tAs.length) return '';
+                if (!tAs.length) return '';
                 return `<div class="card mb-3 animate-fade">
                     <div class="flex-between mb-3">
                         <div class="flex-gap">
@@ -1117,29 +1229,29 @@ export async function renderAdmin(container) {
                                     <th class="text-center">Amal</th>
                                 </tr>
                             </thead>
-                            <tbody>${tAs.map(a => { 
-                                const g = groups.find(gx => gx.id === a.groupId); 
-                                const l = `${baseUrl}#test/${a.token}`; 
-                                return `<tr>
+                            <tbody>${tAs.map(a => {
+                    const g = groups.find(gx => gx.id === a.groupId);
+                    const l = `${baseUrl}#test/${a.token}`;
+                    return `<tr>
                                     <td><input type="checkbox" class="sel-a" data-id="${a.id}"></td>
                                     <td><strong>${g?.name} (${g?.course}-kurs)</strong><p class="text-muted small">${g?.tutor || 'Tutorsiz'}</p></td>
                                     <td><label class="switch"><input type="checkbox" class="tog-a" data-id="${a.id}" ${a.active ? 'checked' : ''}><span class="slider round"></span></label></td>
                                     <td><div class="flex-gap"><code style="background:var(--primary-light); padding:4px 8px; border-radius:8px; color:var(--primary); font-size:0.8rem">${l}</code><button class="btn btn-sm btn-icon c-link" data-link="${l}"><i data-lucide="copy" style="width:14px"></i></button></div></td>
                                     <td class="text-center"><button class="btn-icon text-danger del-a" data-id="${a.id}"><i data-lucide="trash-2"></i></button></td>
-                                </tr>` 
-                            }).join('')}</tbody>
+                                </tr>`
+                }).join('')}</tbody>
                         </table>
                     </div>
                 </div>`;
             }).join('');
-            
+
             area.querySelectorAll('.c-link').forEach(b => b.onclick = () => { navigator.clipboard.writeText(b.dataset.link); showToast("Havola nusxalandi", "success"); });
-            
+
             area.querySelectorAll('.copy-by-tutor').forEach(b => b.onclick = () => {
                 const tId = b.dataset.tid;
                 const test = tests.find(t => t.id === tId);
                 const tAs = assigns.filter(a => a.testId === tId);
-                
+
                 // Group by tutor
                 const tutorGroups = {};
                 tAs.forEach(a => {
@@ -1150,7 +1262,7 @@ export async function renderAdmin(container) {
                 });
 
                 const tutors = Object.keys(tutorGroups).sort();
-                
+
                 const html = `
                     <div class="flex-between mb-3" style="padding: 0 5px;">
                         <h4 style="margin:0; opacity:0.7">Hamma tutorlar uchun</h4>
@@ -1189,7 +1301,7 @@ export async function renderAdmin(container) {
 
                 modal.querySelector('#copy-all-tutors-bulk').onclick = () => {
                     let fullMessage = `Assalomu alaykum hurmatli tutorlar,\n${test.title} testi uchun guruhlar havolalari:\n\n`;
-                    
+
                     tutors.forEach((tName, index) => {
                         const tLinks = tutorGroups[tName];
                         fullMessage += `${index + 1}. ${tName}:\n`;
@@ -1198,14 +1310,14 @@ export async function renderAdmin(container) {
                         });
                         fullMessage += `\n`;
                     });
-                    
+
                     navigator.clipboard.writeText(fullMessage.trim());
                     showToast("Barcha tutorlar uchun havolalar nusxalandi", "success");
                 };
             });
-            area.querySelectorAll('.tog-a').forEach(b => b.onchange = async (e) => { await updateDoc(doc(db,"assignments",b.dataset.id), { active: e.target.checked }); showToast("Holat yangilandi", "success"); });
-            area.querySelectorAll('.del-a').forEach(b => b.onclick = async () => { if(confirm("O'chirilsinmi?")) { await deleteDoc(doc(db,"assignments",b.dataset.id)); clearCache(); renderTab(); } });
-            
+            area.querySelectorAll('.tog-a').forEach(b => b.onchange = async (e) => { await updateDoc(doc(db, "assignments", b.dataset.id), { active: e.target.checked }); showToast("Holat yangilandi", "success"); });
+            area.querySelectorAll('.del-a').forEach(b => b.onclick = async () => { if (confirm("O'chirilsinmi?")) { await deleteDoc(doc(db, "assignments", b.dataset.id)); clearCache(); renderTab(); } });
+
             const updateBulkBtn = () => {
                 const checked = area.querySelectorAll('.sel-a:checked');
                 document.getElementById('btn-bulk-del').style.display = checked.length ? 'block' : 'none';
@@ -1217,38 +1329,38 @@ export async function renderAdmin(container) {
                 updateBulkBtn();
             });
         };
-        
+
         renderAssigns();
 
         document.getElementById('btn-create-links').onclick = async () => {
             const tId = aTest.value;
             const test = tests.find(t => t.id === tId);
             const selectedGIds = Array.from(area.querySelectorAll('.g-check:checked')).map(cb => cb.value);
-            
+
             if (!selectedGIds.length) return showToast("Guruhlarni tanlang", "warning");
-            
+
             showToast(`${selectedGIds.length} ta guruh uchun havolalar yaratilmoqda...`, "info");
-            
+
             for (const gId of selectedGIds) {
-                const token = Math.random().toString(36).substring(2,8).toUpperCase();
-                await addDoc(collection(db, "assignments"), { 
-                    testId: tId, 
-                    testTitle: test.title, 
-                    groupId: gId, 
-                    token, 
-                    active: true, 
-                    createdAt: serverTimestamp() 
+                const token = Math.random().toString(36).substring(2, 8).toUpperCase();
+                await addDoc(collection(db, "assignments"), {
+                    testId: tId,
+                    testTitle: test.title,
+                    groupId: gId,
+                    token,
+                    active: true,
+                    createdAt: serverTimestamp()
                 });
             }
-            
+
             showToast("Havolalar muvaffaqiyatli yaratildi", "success");
             clearCache();
             renderTab();
         };
 
         document.getElementById('btn-bulk-del').onclick = async () => {
-            if(!confirm("Tanlanganlarni o'chirasizmi?")) return;
-            for(const cb of area.querySelectorAll('.sel-a:checked')) { await deleteDoc(doc(db,"assignments",cb.dataset.id)); }
+            if (!confirm("Tanlanganlarni o'chirasizmi?")) return;
+            for (const cb of area.querySelectorAll('.sel-a:checked')) { await deleteDoc(doc(db, "assignments", cb.dataset.id)); }
             clearCache(); renderTab();
         };
 
@@ -1264,8 +1376,8 @@ export async function renderAdmin(container) {
         area.innerHTML = `
             <div class="card mb-4 animate-fade">
                 <div class="grid grid-5">
-                    <div class="input-group"><label>Metodika</label><select id="f-test"><option value="all">Barchasi</option>${tests.map(t=>`<option value="${t.id}">${t.title}</option>`).join('')}</select></div>
-                    <div class="input-group"><label>Fakultet</label><select id="f-fac"><option value="all">Barchasi</option>${[...new Set(groups.map(g=>g.faculty||'Akademiya'))].map(f=>`<option value="${f}">${f}</option>`).join('')}</select></div>
+                    <div class="input-group"><label>Metodika</label><select id="f-test"><option value="all">Barchasi</option>${tests.map(t => `<option value="${t.id}">${t.title}</option>`).join('')}</select></div>
+                    <div class="input-group"><label>Fakultet</label><select id="f-fac"><option value="all">Barchasi</option>${[...new Set(groups.map(g => g.faculty || 'Akademiya'))].map(f => `<option value="${f}">${f}</option>`).join('')}</select></div>
                     <div class="input-group"><label>Yo'nalish</label><select id="f-dir"><option value="all">Barchasi</option></select></div>
                     <div class="input-group"><label>Kurs</label><select id="f-course"><option value="all">Barchasi</option><option value="1">1-kurs</option><option value="2">2-kurs</option><option value="3">3-kurs</option><option value="4">4-kurs</option></select></div>
                     <div class="flex-gap" style="align-items: flex-end"><button id="btn-update-analytics" class="btn btn-primary w-100" style="padding: 13px"><i data-lucide="refresh-cw"></i> Ko'rsatish</button></div>
@@ -1302,7 +1414,7 @@ export async function renderAdmin(container) {
         const updateAnalytics = async () => {
             const btn = document.getElementById('btn-update-analytics');
             const contentArea = document.getElementById('analytics-content-area');
-            
+
             btn.disabled = true;
             btn.innerHTML = `<div class="loader-sm"></div> Yuklanmoqda...`;
             contentArea.innerHTML = `<div class="flex-center py-5"><div class="loader"></div></div>`;
@@ -1316,13 +1428,13 @@ export async function renderAdmin(container) {
                 const crs = document.getElementById('f-course').value;
 
                 let filteredGroups = groups || [];
-                if(fac !== 'all') filteredGroups = filteredGroups.filter(g => (g.faculty||'Akademiya') === fac);
-                if(dir !== 'all') filteredGroups = filteredGroups.filter(g => g.direction === dir);
-                if(crs !== 'all') filteredGroups = filteredGroups.filter(g => String(g.course) === crs);
+                if (fac !== 'all') filteredGroups = filteredGroups.filter(g => (g.faculty || 'Akademiya') === fac);
+                if (dir !== 'all') filteredGroups = filteredGroups.filter(g => g.direction === dir);
+                if (crs !== 'all') filteredGroups = filteredGroups.filter(g => String(g.course) === crs);
 
                 const gIds = new Set(filteredGroups.map(g => g.id));
                 let filteredSubs = (subs || []).filter(s => gIds.has(s.groupId));
-                if(tId !== 'all') filteredSubs = filteredSubs.filter(s => s.testId === tId);
+                if (tId !== 'all') filteredSubs = filteredSubs.filter(s => s.testId === tId);
 
                 contentArea.innerHTML = `
                     <div class="grid grid-2 animate-fade">
@@ -1341,7 +1453,7 @@ export async function renderAdmin(container) {
 
                 let labels = [], data = [], colors = ['#4318FF', '#05CD99', '#FFB547', '#FF5B5B', '#6AD2FF', '#918EF4'];
                 const selectedTest = tests.find(t => t.id === tId);
-                
+
                 if (selectedTest && selectedTest.interpretations?.length) {
                     labels = selectedTest.interpretations.map(i => i.text);
                     data = new Array(labels.length).fill(0);
@@ -1354,7 +1466,7 @@ export async function renderAdmin(container) {
                     let low = 0, med = 0, high = 0;
                     filteredSubs.forEach(s => {
                         const sc = parseFloat(s.score || 0);
-                        if(sc <= 10) low++; else if(sc <= 20) med++; else high++;
+                        if (sc <= 10) low++; else if (sc <= 20) med++; else high++;
                     });
                     data = [low, med, high]; labels = ['Past', 'O\'rta', 'Yuqori']; colors = ['#05CD99', '#FFB547', '#FF5B5B'];
                 }
@@ -1366,16 +1478,16 @@ export async function renderAdmin(container) {
                     options: { plugins: { legend: { display: false } } }
                 });
 
-                document.getElementById('pie-legend').innerHTML = labels.map((l,i) => `
+                document.getElementById('pie-legend').innerHTML = labels.map((l, i) => `
                     <div class="flex-between mb-2">
                         <div class="flex-gap"><div style="width:12px; height:12px; background:${colors[i]}; border-radius:3px"></div><span>${l}</span></div>
-                        <strong>${data[i]} ta (${filteredSubs.length ? Math.round(data[i]/filteredSubs.length*100) : 0}%)</strong>
+                        <strong>${data[i]} ta (${filteredSubs.length ? Math.round(data[i] / filteredSubs.length * 100) : 0}%)</strong>
                     </div>`).join('');
 
                 document.getElementById('groups-body').innerHTML = filteredGroups.map(g => {
                     const gSubs = filteredSubs.filter(s => s.groupId === g.id);
-                    const prc = g.students?.length ? Math.round(gSubs.length/g.students.length*100) : 0;
-                    return `<tr><td>${g.name}</td><td>${gSubs.length} / ${g.students?.length||0}</td><td><div class="flex-gap">${prc}% <div class="progress-bar-container" style="flex:1"><div class="progress-bar-fill" style="width:${prc}%"></div></div></div></td></tr>`;
+                    const prc = g.students?.length ? Math.round(gSubs.length / g.students.length * 100) : 0;
+                    return `<tr><td>${g.name}</td><td>${gSubs.length} / ${g.students?.length || 0}</td><td><div class="flex-gap">${prc}% <div class="progress-bar-container" style="flex:1"><div class="progress-bar-fill" style="width:${prc}%"></div></div></div></td></tr>`;
                 }).join('');
 
                 if (tId !== 'all' && selectedTest?.questions) {
@@ -1386,8 +1498,8 @@ export async function renderAdmin(container) {
                         if (q.type === 'text' || !q.options) return;
                         const qCounts = {};
                         q.options.forEach(o => qCounts[o.text] = 0);
-                        filteredSubs.forEach(s => { if(s.answers && s.answers[i]) qCounts[s.answers[i]] = (qCounts[s.answers[i]]||0) + 1; });
-                        qB.innerHTML += `<div class="mb-4 p-3 border-bottom"><strong>${i+1}. ${q.text}</strong><div class="grid grid-4 mt-2">${q.options.map(o=>`<div class="small">${o.text}: <b>${qCounts[o.text]} ta</b></div>`).join('')}</div></div>`;
+                        filteredSubs.forEach(s => { if (s.answers && s.answers[i]) qCounts[s.answers[i]] = (qCounts[s.answers[i]] || 0) + 1; });
+                        qB.innerHTML += `<div class="mb-4 p-3 border-bottom"><strong>${i + 1}. ${q.text}</strong><div class="grid grid-4 mt-2">${q.options.map(o => `<div class="small">${o.text}: <b>${qCounts[o.text]} ta</b></div>`).join('')}</div></div>`;
                     });
                 }
                 if (window.lucide) window.lucide.createIcons();
@@ -1405,24 +1517,24 @@ export async function renderAdmin(container) {
 
     async function openStudentProfile(name, groupId) {
         contentArea.innerHTML = `<div class="flex-center" style="height:60vh"><div class="loader"></div></div>`;
-        pageTitle.innerText = "Talaba Profili"; 
-        
+        pageTitle.innerText = "Talaba Profili";
+
         try {
             const [gs, ts] = await Promise.all([fetchData("groups"), fetchData("tests")]);
             const g = gs.find(gr => gr.id === groupId);
-            
+
             let subs = [];
             if (!isMock) {
                 // Fetch by groupId only to avoid composite index requirement
-                const q = query(collection(db,"submissions"), where("groupId","==",groupId));
-                const snap = await getDocs(q); 
+                const q = query(collection(db, "submissions"), where("groupId", "==", groupId));
+                const snap = await getDocs(q);
                 subs = snap.docs
-                    .map(d=>({id: d.id, ...d.data()}))
+                    .map(d => ({ id: d.id, ...d.data() }))
                     .filter(s => s.studentName === name)
                     .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
             }
-        
-        contentArea.innerHTML = `
+
+            contentArea.innerHTML = `
             <div class="profile-card animate-fade">
                 <div class="profile-banner" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); height: 120px; border-radius: 30px 30px 0 0"></div>
                 <div class="profile-content" style="margin-top: -60px; padding: 0 30px 30px">
@@ -1452,50 +1564,60 @@ export async function renderAdmin(container) {
 
                         <div id="portrait-grid">
                             ${(() => {
-                                const studentObj = g.students.find(s => s.name === name);
-                                const profileSub = subs.find(s => s.isProfileData);
-                                const rawPortrait = profileSub?.portraitData || studentObj?.portrait || studentObj?.profileData || {};
-                                        // Convert to array if it's an object
-                                const portraitData = (Array.isArray(rawPortrait) ? rawPortrait : Object.entries(rawPortrait).map(([label, value]) => ({ label, value })))
-                                    .filter(d => d.value && d.value !== "---");
+                        const studentObj = g.students.find(s => s.name === name);
+                        const profileSub = subs.find(s => s.isProfileData);
+                        const rawPortrait = profileSub?.portraitData || studentObj?.portrait || studentObj?.profileData || {};
+                        // Convert to array if it's an object
+                        const portraitData = (Array.isArray(rawPortrait) ? rawPortrait : Object.entries(rawPortrait).map(([label, value]) => ({ label, value })))
+                            .filter(d => d.value && d.value !== "---");
 
-                                // Master template for the requested sequence
-                                const masterTemplate = [
-                                    { category: "SHAXSIY MA'LUMOTLAR", fields: [
-                                        "F.I.Sh", "Fakultet, guruh, kurs", "Tuģilgan yili, oyi, kuni", "Doimiy yashash manzili", 
-                                        "Oilaviy ahvoli", "Otasi", "Onasi", "Yashash sharoiti", "Salomatligi to'g'risida ma'mulotlar", 
-                                        "Fanlarni o'zlashtirishi", "Xarakterining asosiy xususiyatlari", "Oilaviy munosabatlar xususiyatlari", 
-                                        "Izoh", "Kursdoshlari bilan o'zaro munosabati", "Profilaktika va korreksiya uchun tavsiyalar"
-                                    ]},
-                                    { category: "IJTIMOIY MOSLASHUV", fields: [
-                                        "Tengdoshlari bilan o'zaro munosabati", "O'qituvchilar bilan o'zaro munosabati", "Muloqotchanligi"
-                                    ]},
-                                    { category: "INDIVIDUAL-PSIXOLOGIK XUSUSIYATLAR", fields: [
-                                        "Ajralib turadigan charakter xususiyatlari", "O'ziga beradigan bahosi", "Xavotirlanuvchanligi", 
-                                        "Agressivlik darajasi", "Irodaviy xususiyatlari", "Diqqati"
-                                    ]},
-                                    { category: "INTELLEKTUAL RIVOJLANISH", fields: [
-                                        "Tafakkur xususiyatlari", "Intellektual salohiyati"
-                                    ]},
-                                    { category: "QIZIQISHLARI", fields: [
-                                        "Hobbisi", "Sport turi", "San'at turi", "Erishgan yutuqlari", "Bo'sh vaqtdan foydalanish"
-                                    ]}
-                                ];
+                        // Master template for the requested sequence
+                        const masterTemplate = [
+                            {
+                                category: "SHAXSIY MA'LUMOTLAR", fields: [
+                                    "F.I.Sh", "Fakultet, guruh, kurs", "Tuģilgan yili, oyi, kuni", "Doimiy yashash manzili",
+                                    "Oilaviy ahvoli", "Otasi", "Onasi", "Yashash sharoiti", "Salomatligi to'g'risida ma'mulotlar",
+                                    "Fanlarni o'zlashtirishi", "Xarakterining asosiy xususiyatlari", "Oilaviy munosabatlar xususiyatlari",
+                                    "Izoh", "Kursdoshlari bilan o'zaro munosabati", "Profilaktika va korreksiya uchun tavsiyalar"
+                                ]
+                            },
+                            {
+                                category: "IJTIMOIY MOSLASHUV", fields: [
+                                    "Tengdoshlari bilan o'zaro munosabati", "O'qituvchilar bilan o'zaro munosabati", "Muloqotchanligi"
+                                ]
+                            },
+                            {
+                                category: "INDIVIDUAL-PSIXOLOGIK XUSUSIYATLAR", fields: [
+                                    "Ajralib turadigan charakter xususiyatlari", "O'ziga beradigan bahosi", "Xavotirlanuvchanligi",
+                                    "Agressivlik darajasi", "Irodaviy xususiyatlari", "Diqqati"
+                                ]
+                            },
+                            {
+                                category: "INTELLEKTUAL RIVOJLANISH", fields: [
+                                    "Tafakkur xususiyatlari", "Intellektual salohiyati"
+                                ]
+                            },
+                            {
+                                category: "QIZIQISHLARI", fields: [
+                                    "Hobbisi", "Sport turi", "San'at turi", "Erishgan yutuqlari", "Bo'sh vaqtdan foydalanish"
+                                ]
+                            }
+                        ];
 
-                                const usedIndices = new Set();
-                                const sectionsHtml = masterTemplate.map(section => {
-                                    const sectionItems = [];
-                                    section.fields.forEach(fLabel => {
-                                        const foundIdx = portraitData.findIndex((d, idx) => !usedIndices.has(idx) && d.label.toLowerCase().includes(fLabel.toLowerCase()));
-                                        if (foundIdx > -1) {
-                                            sectionItems.push(portraitData[foundIdx]);
-                                            usedIndices.add(foundIdx);
-                                        }
-                                    });
+                        const usedIndices = new Set();
+                        const sectionsHtml = masterTemplate.map(section => {
+                            const sectionItems = [];
+                            section.fields.forEach(fLabel => {
+                                const foundIdx = portraitData.findIndex((d, idx) => !usedIndices.has(idx) && d.label.toLowerCase().includes(fLabel.toLowerCase()));
+                                if (foundIdx > -1) {
+                                    sectionItems.push(portraitData[foundIdx]);
+                                    usedIndices.add(foundIdx);
+                                }
+                            });
 
-                                    if (sectionItems.length === 0) return "";
+                            if (sectionItems.length === 0) return "";
 
-                                    return `
+                            return `
                                         <div class="mt-4 mb-3">
                                             <h5 style="color:var(--text-muted); font-size:0.7rem; font-weight:800; letter-spacing:2px; text-transform:uppercase; border-left:3px solid var(--primary); padding-left:10px">${section.category}</h5>
                                         </div>
@@ -1514,10 +1636,10 @@ export async function renderAdmin(container) {
                                             `).join('')}
                                         </div>
                                     `;
-                                }).join('');
+                        }).join('');
 
-                                const remainingItems = portraitData.filter((_, idx) => !usedIndices.has(idx));
-                                const customHtml = remainingItems.length > 0 ? `
+                        const remainingItems = portraitData.filter((_, idx) => !usedIndices.has(idx));
+                        const customHtml = remainingItems.length > 0 ? `
                                     <div class="mt-4 pt-3 border-top" id="custom-fields-area">
                                         <h5 style="color:var(--text-muted); font-size:0.7rem; font-weight:800; letter-spacing:2px; text-transform:uppercase; margin-bottom:15px">QO'SHIMCHA MA'LUMOTLAR</h5>
                                         <div class="grid grid-2" id="custom-portrait-grid" style="gap:20px">
@@ -1536,8 +1658,8 @@ export async function renderAdmin(container) {
                                         </div>
                                     </div>` : "";
 
-                                return sectionsHtml + customHtml;
-                            })() }
+                        return sectionsHtml + customHtml;
+                    })()}
                         </div>
                         <div id="portrait-actions" style="display:none" class="mt-4 flex-center">
                             <button class="btn btn-sm btn-outline" id="btn-add-p-field">+ Yangi ixtiyoriy maydon</button>
@@ -1552,7 +1674,7 @@ export async function renderAdmin(container) {
                         </div>
                         <div class="card stat-card">
                             <div class="icon-circle success" style="width:45px; height:45px"><i data-lucide="award"></i></div>
-                            <div><p class="text-muted small uppercase font-weight-800">O'rtacha Ball</p><h3>${subs.length ? Math.round(subs.reduce((a,b)=>a+(b.score||0),0)/subs.length) : 0}</h3></div>
+                            <div><p class="text-muted small uppercase font-weight-800">O'rtacha Ball</p><h3>${subs.length ? Math.round(subs.reduce((a, b) => a + (b.score || 0), 0) / subs.length) : 0}</h3></div>
                         </div>
                         <div class="card stat-card">
                             <div class="icon-circle warning" style="width:45px; height:45px"><i data-lucide="trending-up"></i></div>
@@ -1560,27 +1682,25 @@ export async function renderAdmin(container) {
                         </div>
                     </div>
 
-                    <div class="grid grid-2 mt-4">
-                        <div class="card">
-                            <div class="flex-between w-100 mb-4"><h3>Ko'rsatkichlar Dinamikasi</h3></div>
-                            <div style="height:250px; width:100%"><canvas id="studentTrendChart"></canvas></div>
-                        </div>
-                        <div class="card">
-                            <div class="flex-between w-100 mb-4"><h3>Topshirilgan Testlar</h3></div>
-                            <div class="w-100" style="max-height: 250px; overflow-y: auto">
-                                ${subs.length ? subs.map(s => {
-                                    const scoreColor = s.score > 20 ? 'badge-danger' : (s.score > 10 ? 'badge-warning' : 'badge-success');
-                                    return `
-                                        <div class="flex-between mb-3 p-3 border-bottom v-sub-detail hover-card" data-id="${s.id}" style="cursor:pointer; border-radius:15px">
-                                            <div style="text-align:left; flex: 1;">
-                                                <p style="font-weight:700; margin-bottom:2px">${s.testTitle}</p>
-                                                <p class="text-primary small" style="font-weight:600">${s.conclusion || ''}</p>
-                                                <p class="text-muted small">${new Date(s.timestamp?.seconds*1000).toLocaleDateString()}</p>
-                                            </div>
-                                            <span class="badge ${scoreColor}" style="margin-left:10px">${s.score} ball</span>
-                                        </div>`;
-                                }).join('') : '<p class="text-muted">Hali test topshirilmagan</p>'}
-                            </div>
+                    <div class="card mt-4">
+                        <div class="flex-between w-100 mb-4"><h3>Ko'rsatkichlar Dinamikasi</h3></div>
+                        <div style="height:250px; width:100%"><canvas id="studentTrendChart"></canvas></div>
+                    </div>
+                    <div class="card mt-4">
+                        <div class="flex-between w-100 mb-4"><h3>Topshirilgan Testlar</h3></div>
+                        <div class="w-100 grid grid-2" style="gap:20px;">
+                            ${subs.length ? subs.map(s => {
+                        const scoreColor = s.score > 20 ? 'badge-danger' : (s.score > 10 ? 'badge-warning' : 'badge-success');
+                        return `
+                                    <div class="v-sub-detail hover-card" data-id="${s.id}" style="cursor:pointer; border-radius:16px; border: 1px solid rgba(0,0,0,0.05); padding: 20px; background: rgba(0,0,0,0.01);">
+                                        <div class="flex-between mb-2">
+                                            <p style="font-weight:800; font-size:1.1rem">${s.testTitle}</p>
+                                            <span class="badge ${scoreColor}" style="font-size:0.85rem">${s.score} ball</span>
+                                        </div>
+                                        <p class="text-muted small mb-3"><i data-lucide="calendar" style="width:12px; margin-right:4px"></i> ${new Date(s.timestamp?.seconds * 1000).toLocaleDateString()}</p>
+                                        ${s.conclusion ? `<div style="background: rgba(67, 24, 255, 0.05); padding: 12px; border-radius: 12px; border-left: 3px solid var(--primary); font-weight:600; font-size:0.9rem; color:var(--text); margin-top:10px;">${s.conclusion}</div>` : ''}
+                                    </div>`;
+                    }).join('') : '<p class="text-muted">Hali test topshirilmagan</p>'}
                         </div>
                     </div>
                 </div>
@@ -1588,44 +1708,44 @@ export async function renderAdmin(container) {
             <div class="flex-center mt-4">
                 <button class="btn btn-outline btn-round" id="btn-back-prof"><i data-lucide="arrow-left"></i> Guruhga qaytish</button>
             </div>`;
-        
-        document.getElementById('btn-back-prof').onclick = () => { currentSubView='students_list'; renderTab(); };
-        
-        if(window.Chart && subs.length) {
-            const ctxT = document.getElementById('studentTrendChart').getContext('2d');
-            new Chart(ctxT, {
-                type: 'line',
-                data: {
-                    labels: subs.map(s => new Date(s.timestamp?.seconds*1000).toLocaleDateString()).reverse(),
-                    datasets: [{
-                        label: 'Ball',
-                        data: subs.map(s => s.score).reverse(),
-                        borderColor: '#4318FF',
-                        backgroundColor: 'rgba(67, 24, 255, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#4318FF'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, max: 30 } }
-                }
-            });
-        }
 
-        contentArea.querySelectorAll('.v-sub-detail').forEach(item => {
-            item.onclick = () => {
-                const sub = subs.find(s => s.id === item.dataset.id);
-                const test = ts.find(t => t.id === sub.testId);
-                if(!test) return showToast("Test ma'lumotlari topilmadi", "error");
-                const detailHtml = `
+            document.getElementById('btn-back-prof').onclick = () => { currentSubView = 'students_list'; renderTab(); };
+
+            if (window.Chart && subs.length) {
+                const ctxT = document.getElementById('studentTrendChart').getContext('2d');
+                new Chart(ctxT, {
+                    type: 'line',
+                    data: {
+                        labels: subs.map(s => new Date(s.timestamp?.seconds * 1000).toLocaleDateString()).reverse(),
+                        datasets: [{
+                            label: 'Ball',
+                            data: subs.map(s => s.score).reverse(),
+                            borderColor: '#4318FF',
+                            backgroundColor: 'rgba(67, 24, 255, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#4318FF'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, max: 30 } }
+                    }
+                });
+            }
+
+            contentArea.querySelectorAll('.v-sub-detail').forEach(item => {
+                item.onclick = () => {
+                    const sub = subs.find(s => s.id === item.dataset.id);
+                    const test = ts.find(t => t.id === sub.testId);
+                    if (!test) return showToast("Test ma'lumotlari topilmadi", "error");
+                    const detailHtml = `
                     <div class="detail-list" style="max-height: 500px; overflow-y: auto; padding: 10px">
-                        ${sub.portraitData ? 
-                            (Array.isArray(sub.portraitData) ? 
+                        ${sub.portraitData ?
+                            (Array.isArray(sub.portraitData) ?
                                 sub.portraitData.map((item, i) => `
                                     <div class="mb-3 p-3" style="background:rgba(67, 24, 255, 0.03); border-radius:15px; text-align:left">
                                         <p class="small text-primary font-weight-800 mb-1">${item.label}</p>
@@ -1640,45 +1760,45 @@ export async function renderAdmin(container) {
                                     </div>
                                 `).join('')
                             )
-                        : 
+                            :
                             test.questions.map((q, i) => `
                                 <div class="mb-3 p-3" style="background:rgba(67, 24, 255, 0.03); border-radius:15px; text-align:left">
-                                    <p class="small text-muted font-weight-800 mb-1">SAVOL ${i+1}</p>
+                                    <p class="small text-muted font-weight-800 mb-1">SAVOL ${i + 1}</p>
                                     <p style="font-weight:700; font-size:1rem; line-height:1.3">${q.text}</p>
                                     <p class="mt-2 text-primary" style="font-weight:600">Javob: ${sub.answers[i] || '---'}</p>
                                 </div>
                             `).join('')
                         }
                     </div>`;
-                showModal(`${sub.testTitle}`, detailHtml, () => true);
-            };
-        });
+                    showModal(`${sub.testTitle}`, detailHtml, () => true);
+                };
+            });
 
-        // --- Portrait Editing Logic ---
-        const pCard = document.getElementById('portrait-card');
-        if (pCard) {
-            const btnEdit = document.getElementById('btn-edit-portrait');
-            const btnSave = document.getElementById('btn-save-portrait');
-            const pActions = document.getElementById('portrait-actions');
-            const pGrid = document.getElementById('portrait-grid');
+            // --- Portrait Editing Logic ---
+            const pCard = document.getElementById('portrait-card');
+            if (pCard) {
+                const btnEdit = document.getElementById('btn-edit-portrait');
+                const btnSave = document.getElementById('btn-save-portrait');
+                const pActions = document.getElementById('portrait-actions');
+                const pGrid = document.getElementById('portrait-grid');
 
-            btnEdit.onclick = () => {
-                const isEditing = btnEdit.innerText.includes("Tahrirlash");
-                btnEdit.innerHTML = isEditing ? '<i data-lucide="x-circle"></i> Bekor qilish' : '<i data-lucide="edit"></i> Tahrirlash';
-                btnSave.style.display = isEditing ? 'block' : 'none';
-                pActions.style.display = isEditing ? 'flex' : 'none';
-                
-                pCard.querySelectorAll('.p-label-view, .p-value-view').forEach(el => el.style.display = isEditing ? 'none' : 'block');
-                pCard.querySelectorAll('.p-label-edit, .p-value-edit, .p-del-btn').forEach(el => el.style.display = isEditing ? 'block' : 'none');
-                if(window.lucide) window.lucide.createIcons();
-            };
+                btnEdit.onclick = () => {
+                    const isEditing = btnEdit.innerText.includes("Tahrirlash");
+                    btnEdit.innerHTML = isEditing ? '<i data-lucide="x-circle"></i> Bekor qilish' : '<i data-lucide="edit"></i> Tahrirlash';
+                    btnSave.style.display = isEditing ? 'block' : 'none';
+                    pActions.style.display = isEditing ? 'flex' : 'none';
 
-            document.getElementById('btn-add-p-field').onclick = () => {
-                const customGrid = document.getElementById('custom-portrait-grid');
-                const div = document.createElement('div');
-                div.className = 'profile-field-box animate-fade';
-                div.style = 'background: rgba(5, 205, 153, 0.05); padding: 12px 18px; border-radius: 16px; border: 1px solid var(--success); position: relative; overflow: hidden;';
-                div.innerHTML = `
+                    pCard.querySelectorAll('.p-label-view, .p-value-view').forEach(el => el.style.display = isEditing ? 'none' : 'block');
+                    pCard.querySelectorAll('.p-label-edit, .p-value-edit, .p-del-btn').forEach(el => el.style.display = isEditing ? 'block' : 'none');
+                    if (window.lucide) window.lucide.createIcons();
+                };
+
+                document.getElementById('btn-add-p-field').onclick = () => {
+                    const customGrid = document.getElementById('custom-portrait-grid');
+                    const div = document.createElement('div');
+                    div.className = 'profile-field-box animate-fade';
+                    div.style = 'background: rgba(5, 205, 153, 0.05); padding: 12px 18px; border-radius: 16px; border: 1px solid var(--success); position: relative; overflow: hidden;';
+                    div.innerHTML = `
                     <div style="position:absolute; top:0; left:0; width:3px; height:100%; background:var(--success)"></div>
                     <div class="flex-between mb-1">
                         <input type="text" class="p-label-edit" value="" placeholder="YANGI MAYDON" style="font-size:0.7rem; font-weight:800; text-transform:uppercase; border:none; background:transparent; color:var(--success); width:100%">
@@ -1686,47 +1806,47 @@ export async function renderAdmin(container) {
                     </div>
                     <textarea class="p-value-edit cozy-input" placeholder="Javobni kiriting..." style="font-weight:700; font-size:0.95rem; min-height:35px; padding:6px; border-radius:8px"></textarea>
                 `;
-                customGrid.appendChild(div);
-                div.querySelector('.p-del-btn').onclick = () => div.remove();
-            };
+                    customGrid.appendChild(div);
+                    div.querySelector('.p-del-btn').onclick = () => div.remove();
+                };
 
-            pCard.querySelectorAll('.p-del-btn').forEach(btn => btn.onclick = () => btn.closest('.profile-field-box').remove());
+                pCard.querySelectorAll('.p-del-btn').forEach(btn => btn.onclick = () => btn.closest('.profile-field-box').remove());
 
-            btnSave.onclick = async () => {
-                btnSave.disabled = true;
-                const oldText = btnSave.innerHTML;
-                btnSave.innerText = "Saqlanmoqda...";
-                
-                const newData = Array.from(pGrid.querySelectorAll('.profile-field-box')).map(box => ({
-                    label: box.querySelector('.p-label-edit').value,
-                    value: box.querySelector('.p-value-edit').value
-                }));
+                btnSave.onclick = async () => {
+                    btnSave.disabled = true;
+                    const oldText = btnSave.innerHTML;
+                    btnSave.innerText = "Saqlanmoqda...";
 
-                try {
-                    const studentIdx = g.students.findIndex(s => s.name === name);
-                    if (studentIdx > -1) {
-                        g.students[studentIdx].portrait = newData;
-                        await updateDoc(doc(db, "groups", g.id), { students: g.students });
-                        
-                        // Also update the latest profile submission if it exists
-                        const profileSub = subs.find(s => s.isProfileData);
-                        if (profileSub) {
-                            await updateDoc(doc(db, "assignments", profileSub.id), { portraitData: newData });
+                    const newData = Array.from(pGrid.querySelectorAll('.profile-field-box')).map(box => ({
+                        label: box.querySelector('.p-label-edit').value,
+                        value: box.querySelector('.p-value-edit').value
+                    }));
+
+                    try {
+                        const studentIdx = g.students.findIndex(s => s.name === name);
+                        if (studentIdx > -1) {
+                            g.students[studentIdx].portrait = newData;
+                            await updateDoc(doc(db, "groups", g.id), { students: g.students });
+
+                            // Also update the latest profile submission if it exists
+                            const profileSub = subs.find(s => s.isProfileData);
+                            if (profileSub) {
+                                await updateDoc(doc(db, "assignments", profileSub.id), { portraitData: newData });
+                            }
+
+                            showToast("Portret saqlandi", "success");
+                            renderTab(); // Refresh to show new data
                         }
-                        
-                        showToast("Portret saqlandi", "success");
-                        renderTab(); // Refresh to show new data
+                    } catch (err) {
+                        showToast("Saqlashda xato: " + err.message, "error");
+                    } finally {
+                        btnSave.disabled = false;
+                        btnSave.innerHTML = oldText;
                     }
-                } catch (err) {
-                    showToast("Saqlashda xato: " + err.message, "error");
-                } finally {
-                    btnSave.disabled = false;
-                    btnSave.innerHTML = oldText;
-                }
-            };
-        }
+                };
+            }
 
-        if(window.lucide) window.lucide.createIcons();
+            if (window.lucide) window.lucide.createIcons();
         } catch (error) {
             console.error("Profile error:", error);
             contentArea.innerHTML = `
@@ -1736,7 +1856,7 @@ export async function renderAdmin(container) {
                     <p class="text-muted mb-4">${error.message}</p>
                     <button class="btn btn-primary" onclick="location.reload()">Sahifani yangilash</button>
                 </div>`;
-            if(window.lucide) window.lucide.createIcons();
+            if (window.lucide) window.lucide.createIcons();
         }
     }
 
