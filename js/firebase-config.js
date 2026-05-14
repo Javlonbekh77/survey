@@ -41,7 +41,7 @@ const mockData = {
         ]}
     ],
     groups: [
-        { id: 'g1', name: 'PI-101', direction: 'Dasturlash', course: 1, tutor: 'Jasur Sodiqov', students: [{name: 'Azizov Ali', completedTests: []}] }
+        { id: 'g1', name: 'PI-101', direction: 'Dasturlash', course: 1, tyutor: 'Jasur Sodiqov', students: [{name: 'Azizov Ali', completedTests: []}] }
     ]
 };
 

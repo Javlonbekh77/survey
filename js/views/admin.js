@@ -23,7 +23,7 @@ export async function renderAdmin(container) {
                     <button class="sidebar-link ${activeTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard"><i data-lucide="layout"></i> <span>Dashboard</span></button>
                     <button class="sidebar-link ${activeTab === 'tests' ? 'active' : ''}" data-tab="tests"><i data-lucide="clipboard-list"></i> <span>Testlar</span></button>
                     <button class="sidebar-link ${activeTab === 'groups' ? 'active' : ''}" data-tab="groups"><i data-lucide="component"></i> <span>Struktura</span></button>
-                    <button class="sidebar-link ${activeTab === 'tutors' ? 'active' : ''}" data-tab="tutors"><i data-lucide="shield-check"></i> <span>Tutorlar</span></button>
+                    <button class="sidebar-link ${activeTab === 'tutors' ? 'active' : ''}" data-tab="tutors"><i data-lucide="shield-check"></i> <span>Tyutorlar</span></button>
                     <button class="sidebar-link ${activeTab === 'students' ? 'active' : ''}" data-tab="students"><i data-lucide="graduation-cap"></i> <span>Talabalar</span></button>
                     <button class="sidebar-link ${activeTab === 'assign' ? 'active' : ''}" data-tab="assign"><i data-lucide="share-2"></i> <span>Biriktirish</span></button>
                     <button class="sidebar-link ${activeTab === 'results' ? 'active' : ''}" data-tab="results"><i data-lucide="activity"></i> <span>Analitika</span></button>
@@ -79,7 +79,7 @@ export async function renderAdmin(container) {
                 case 'dashboard': await renderDashboard(contentArea); break;
                 case 'tests': await renderTestsTab(contentArea); break;
                 case 'groups': await renderGroupsTab(contentArea); break;
-                case 'tutors': await renderTutorsTab(contentArea); break;
+                case 'tutors': await renderTyutorsTab(contentArea); break;
                 case 'students': await renderStudentsTab(contentArea); break;
                 case 'assign': await renderAssignTab(contentArea); break;
                 case 'results': await renderResultsTab(contentArea); break;
@@ -94,26 +94,42 @@ export async function renderAdmin(container) {
         const password = prompt("Tasdiqlash uchun 'RESET' so'zini yozing:");
         if (password !== 'RESET') return;
 
-        showToast("Tozalanmoqda...", "info");
         const cols = ['groups', 'submissions', 'assignments'];
-        for (const colName of cols) {
-            const snap = await getDocs(collection(db, colName));
-            for (const d of snap.docs) {
-                await deleteDoc(doc(db, colName, d.id));
+        const progressToast = showToast("Tozalanmoqda...", "info", Infinity);
+
+        try {
+            for (const colName of cols) {
+                const snap = await getDocs(collection(db, colName));
+                const total = snap.docs.length;
+                let count = 0;
+                for (const d of snap.docs) {
+                    await deleteDoc(doc(db, colName, d.id));
+                    count++;
+                    progressToast.update(`${colName}: ${count}/${total} o'chirilmoqda...`);
+                }
             }
+            progressToast.close();
+            showToast("Barcha ma'lumotlar o'chirildi!", "success");
+        } catch (e) {
+            progressToast.close();
+            showToast("Xato: " + e.message, "error");
         }
-        showToast("Barcha ma'lumotlar o'chirildi!", "success");
         clearCache(); renderTab();
     }
 
     async function seedIIAUData() {
-        if (!confirm("Diqqat! Bu amal tizimga IIAU standart strukturasini (Fakultetlar, Yo'nalishlar) qo'shadi. Davom etasizmi?")) return;
+        if (!confirm("Diqat! Bu amal tizimga IIAU standart strukturasi (Fakultetlar, Yo'nalishlar) qo'shadi. Davom etasizmi?")) return;
         const structure = [
             { fac: 'IIXM', dirs: ['JIXIM', 'Turizm', 'XM', 'AXB'] },
             { fac: 'Islomshunoslik', dirs: ['Manbashunolik', 'Dinshunoslik', 'islomshunoslik'] },
             { fac: 'MSHF', dirs: ['Xorijiy tilllar', 'Filologiya', 'Psixologiya'] }
         ];
 
+        let total = 0;
+        structure.forEach(f => total += f.dirs.length * 4);
+        const progressToast = showToast(`0/${total} guruh yaratilmoqda...`, "info", Infinity);
+
+        let count = 0;
         for (const item of structure) {
             for (const dir of item.dirs) {
                 for (let c = 1; c <= 4; c++) {
@@ -124,9 +140,12 @@ export async function renderAdmin(container) {
                         name: `${dir}-${c}01`,
                         students: [{ name: 'Namuna Talaba', completedTests: [] }]
                     });
+                    count++;
+                    progressToast.update(`${count}/${total} guruh yaratilmoqda...`);
                 }
             }
         }
+        progressToast.close();
         showToast("IIAU strukturasi muvaffaqiyatli yuklandi!", "success");
         clearCache(); renderTab();
     }
@@ -227,26 +246,29 @@ export async function renderAdmin(container) {
             <div class="flex-between mb-4">
                 <div class="flex-gap">
                     <button class="btn btn-primary" id="btn-new-test">+ Yangi Test</button>
+                    <button class="btn btn-outline" id="btn-add-merged">+ Birlashtirilgan test</button>
                     <button class="btn btn-outline" id="btn-import-tests"><i data-lucide="upload"></i> Import JSON</button>
                 </div>
                 <button class="btn btn-outline" id="btn-export-tests"><i data-lucide="download"></i> Export JSON</button>
             </div>
             <div class="grid grid-3">${tests.map(t => `
-                <div class="card animate-scale">
+                <div class="card animate-scale" style="position:relative">
+                    ${t.type === 'merged' ? '<span class="badge badge-info" style="position:absolute; top:10px; right:10px; font-size:0.6rem">Birlashtirilgan</span>' : ''}
                     <div class="flex-between mb-3">
-                        <div class="icon-circle primary"><i data-lucide="clipboard-list"></i></div>
+                        <div class="icon-circle primary"><i data-lucide="${t.type === 'merged' ? 'layers' : 'clipboard-list'}"></i></div>
                         <div class="flex-gap">
-                            <button class="btn-icon edit-test" data-id="${t.id}"><i data-lucide="edit-3"></i></button>
+                            <button class="btn-icon ${t.type === 'merged' ? 'edit-merged' : 'edit-test'}" data-id="${t.id}"><i data-lucide="edit-3"></i></button>
                             <button class="btn-icon text-danger del-test" data-id="${t.id}"><i data-lucide="trash-2"></i></button>
                         </div>
                     </div>
                     <h3>${t.title}</h3>
-                    <p class="text-muted small mt-1">${t.questions.length} savol • ${t.timeLimit} daqiqa</p>
+                    <p class="text-muted small mt-1">${t.type === 'merged' ? (t.testIds?.length || 0) + ' ta test' : (t.questions?.length || 0) + ' ta savol'}</p>
                 </div>
             `).join('')}</div>
         `;
 
         document.getElementById('btn-new-test').onclick = () => renderTestCreator(area);
+        document.getElementById('btn-add-merged').onclick = () => renderMergedTestCreator(area);
         document.getElementById('btn-export-tests').onclick = () => {
             const blob = new Blob([JSON.stringify(tests, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -261,10 +283,18 @@ export async function renderAdmin(container) {
                 reader.onload = async (event) => {
                     try {
                         const imported = JSON.parse(event.target.result);
-                        for (const t of (Array.isArray(imported) ? imported : [imported])) {
+                        const testList = Array.isArray(imported) ? imported : [imported];
+                        const total = testList.length;
+                        const progressToast = showToast(`0/${total} test yuklanmoqda...`, "info", Infinity);
+
+                        let count = 0;
+                        for (const t of testList) {
                             const { id, ...cleanT } = t;
                             await addDoc(collection(db, "tests"), { ...cleanT, createdAt: new Date() });
+                            count++;
+                            progressToast.update(`${count}/${total} test yuklanmoqda...`);
                         }
+                        progressToast.close();
                         showToast("Testlar import qilindi", "success"); clearCache(); renderTab();
                     } catch (err) { showToast("Xato: " + err.message, "error"); }
                 };
@@ -273,6 +303,7 @@ export async function renderAdmin(container) {
             input.click();
         };
         area.querySelectorAll('.edit-test').forEach(b => b.onclick = () => renderTestCreator(area, tests.find(t => t.id === b.dataset.id)));
+        area.querySelectorAll('.edit-merged').forEach(b => b.onclick = () => renderMergedTestCreator(area, tests.find(t => t.id === b.dataset.id)));
         area.querySelectorAll('.del-test').forEach(b => b.onclick = async () => { if (confirm("O'chirilsinmi?")) { await deleteDoc(doc(db, "tests", b.dataset.id)); clearCache(); renderTab(); } });
     }
 
@@ -622,6 +653,120 @@ export async function renderAdmin(container) {
         };
     }
 
+    async function renderMergedTestCreator(area, existing = null) {
+        const tests = (await fetchData("tests")).filter(t => t.type !== 'merged');
+        let selectedIds = existing?.testIds || [];
+
+        const render = () => {
+            area.innerHTML = `
+                <div class="animate-fade" style="max-width: 800px; margin: 0 auto;">
+                    <header class="flex-between mb-4 sticky-header" style="background: var(--surface); padding: 15px 20px; border-radius: 20px; box-shadow: var(--shadow); position: sticky; top: 10px; z-index: 100;">
+                        <div class="flex-gap">
+                            <div class="icon-circle primary" style="width:40px; height:40px"><i data-lucide="layers"></i></div>
+                            <div>
+                                <h2 style="font-size: 1.2rem; margin:0">${existing ? 'Birlashtirilgan testni tahrirlash' : 'Birlashtirilgan test yaratish'}</h2>
+                                <p class="text-muted small" style="margin:0">Bir nechta testlarni bitta linkka birlashtiring</p>
+                            </div>
+                        </div>
+                        <div class="flex-gap">
+                            <button class="btn btn-outline btn-sm" id="btn-back"><i data-lucide="arrow-left"></i> Orqaga</button>
+                            <button class="btn btn-primary btn-sm" id="btn-save-merged" style="box-shadow: 0 5px 15px rgba(67, 24, 255, 0.2)">
+                                <i data-lucide="save"></i> Saqlash
+                            </button>
+                        </div>
+                    </header>
+
+                    <div class="grid grid-2" style="gap:20px; align-items: start;">
+                        <div class="card p-3">
+                            <h4 class="mb-3">Umumiy ma'lumot</h4>
+                            <div class="input-group mb-3">
+                                <label class="small">Birlashtirilgan Test Nomi</label>
+                                <input type="text" id="mt-title" value="${existing?.title || ''}" placeholder="Masalan: Kompleks so'rovnoma">
+                            </div>
+                            <div class="input-group mb-3">
+                                <label class="small">Testlarni tanlang</label>
+                                <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius:12px; padding:10px; background:rgba(0,0,0,0.01)">
+                                    ${tests.map(t => `
+                                        <label class="flex-gap p-2 hover-card" style="cursor:pointer; border-bottom: 1px solid rgba(0,0,0,0.05); border-radius:8px">
+                                            <input type="checkbox" class="t-select" value="${t.id}" ${selectedIds.includes(t.id) ? 'checked' : ''}>
+                                            <span class="small">${t.title}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card p-3">
+                            <h4 class="mb-3">Testlar ketma-ketligi</h4>
+                            <div id="mt-order-list" style="display:flex; flex-direction:column; gap:10px">
+                                ${selectedIds.map((id, i) => {
+                const t = tests.find(x => x.id === id);
+                return `
+                                        <div class="flex-between p-3" style="background:white; border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow-sm)">
+                                            <span class="small"><strong>${i + 1}.</strong> ${t?.title}</span>
+                                            <div class="flex-gap">
+                                                <button class="btn-icon move-up-m" data-idx="${i}"><i data-lucide="chevron-up" style="width:16px"></i></button>
+                                                <button class="btn-icon move-down-m" data-idx="${i}"><i data-lucide="chevron-down" style="width:16px"></i></button>
+                                            </div>
+                                        </div>`;
+            }).join('') || '<div class="p-4 text-center text-muted small border-dashed">Hali testlar tanlanmagan</div>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            if (window.lucide) window.lucide.createIcons();
+
+            document.getElementById('btn-back').onclick = () => renderTab();
+
+            area.querySelectorAll('.t-select').forEach(cb => {
+                cb.onchange = () => {
+                    if (cb.checked) { if (!selectedIds.includes(cb.value)) selectedIds.push(cb.value); }
+                    else { selectedIds = selectedIds.filter(id => id !== cb.value); }
+                    render();
+                };
+            });
+
+            area.querySelectorAll('.move-up-m').forEach(b => {
+                b.onclick = () => {
+                    const idx = parseInt(b.dataset.idx);
+                    if (idx > 0) {
+                        const temp = selectedIds[idx];
+                        selectedIds[idx] = selectedIds[idx - 1];
+                        selectedIds[idx - 1] = temp;
+                        render();
+                    }
+                };
+            });
+
+            area.querySelectorAll('.move-down-m').forEach(b => {
+                b.onclick = () => {
+                    const idx = parseInt(b.dataset.idx);
+                    if (idx < selectedIds.length - 1) {
+                        const temp = selectedIds[idx];
+                        selectedIds[idx] = selectedIds[idx + 1];
+                        selectedIds[idx + 1] = temp;
+                        render();
+                    }
+                };
+            });
+
+            document.getElementById('btn-save-merged').onclick = async () => {
+                const title = document.getElementById('mt-title').value;
+                if (!title || selectedIds.length < 2) return showToast("Kamida 2 ta test tanlang va nom bering", "warning");
+
+                const data = { title, type: 'merged', testIds: selectedIds };
+                if (existing) await updateDoc(doc(db, "tests", existing.id), data);
+                else await addDoc(collection(db, "tests"), { ...data, createdAt: serverTimestamp() });
+
+                showToast("Muvaffaqiyatli saqlandi", "success");
+                clearCache(); renderTab();
+            };
+        };
+
+        render();
+    }
+
     // --- STRUKTURA (GROUPS) TAB ---
     async function renderGroupsTab(area) {
         pageTitle.innerText = "Struktura";
@@ -656,12 +801,12 @@ export async function renderAdmin(container) {
                 input.onchange = async (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
-                    showToast("Ma'lumotlar qayta ishlanmoqda...", "info");
+
                     const reader = new FileReader();
                     reader.onload = async (event) => {
                         const text = event.target.result;
                         const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-                        const headers = lines[0].split(',').map(h => h.trim());
+                        if (lines.length < 2) return;
 
                         // Faculty,Direction,Course,Group,StudentName
                         const data = lines.slice(1).map(line => {
@@ -692,9 +837,18 @@ export async function renderAdmin(container) {
                             groupsMap[uniqueKey].students.push({ name: item.student, completedTests: [] });
                         });
 
-                        for (const gKey in groupsMap) {
+                        const groupKeys = Object.keys(groupsMap);
+                        const total = groupKeys.length;
+                        const progressToast = showToast(`0/${total} guruh yuklanmoqda...`, "info", Infinity);
+
+                        let count = 0;
+                        for (const gKey of groupKeys) {
                             await addDoc(collection(db, "groups"), groupsMap[gKey]);
+                            count++;
+                            progressToast.update(`${count}/${total} guruh yuklanmoqda...`);
                         }
+
+                        progressToast.close();
                         showToast("Ma'lumotlar muvaffaqiyatli import qilindi!", "success");
                         clearCache(); renderTab();
                     };
@@ -714,7 +868,15 @@ export async function renderAdmin(container) {
                     e.stopPropagation();
                     if (!confirm(`"${b.dataset.fac}" fakultetini va uning barcha guruhlarini o'chirishni xohlaysizmi?`)) return;
                     const fGroups = groups.filter(g => (g.faculty || 'Akademiya') === b.dataset.fac);
-                    for (const g of fGroups) await deleteDoc(doc(db, "groups", g.id));
+                    const total = fGroups.length;
+                    const progressToast = showToast(`0/${total} guruh o'chirilmoqda...`, "info", Infinity);
+                    let count = 0;
+                    for (const g of fGroups) {
+                        await deleteDoc(doc(db, "groups", g.id));
+                        count++;
+                        progressToast.update(`${count}/${total} guruh o'chirilmoqda...`);
+                    }
+                    progressToast.close();
                     showToast("Fakultet o'chirildi", "success"); clearCache(); renderTab();
                 };
             });
@@ -775,7 +937,15 @@ export async function renderAdmin(container) {
                     e.stopPropagation();
                     if (!confirm(`"${b.dataset.dir}" yo'nalishini barcha guruhlari bilan o'chirishni xohlaysizmi?`)) return;
                     const dGroups = groups.filter(g => (g.faculty || 'Akademiya') === faculty && parseInt(g.course) === course && g.direction === b.dataset.dir);
-                    for (const g of dGroups) await deleteDoc(doc(db, "groups", g.id));
+                    const total = dGroups.length;
+                    const progressToast = showToast(`0/${total} guruh o'chirilmoqda...`, "info", Infinity);
+                    let count = 0;
+                    for (const g of dGroups) {
+                        await deleteDoc(doc(db, "groups", g.id));
+                        count++;
+                        progressToast.update(`${count}/${total} guruh o'chirilmoqda...`);
+                    }
+                    progressToast.close();
                     showToast("Yo'nalish o'chirildi", "success"); clearCache(); renderTab();
                 };
             });
@@ -893,15 +1063,15 @@ export async function renderAdmin(container) {
     }
 
     // --- TUTORS TAB ---
-    async function renderTutorsTab(area) {
-        pageTitle.innerText = "Tutorlar";
+    async function renderTyutorsTab(area) {
+        pageTitle.innerText = "Tyutorlar";
         const gs = await fetchData("groups");
         const tutors = [...new Set(gs.map(g => g.tutor))].filter(t => t).sort();
 
         area.innerHTML = `
             <div class="flex-between mb-4">
-                <h2>Barcha Tutorlar</h2>
-                <button class="btn btn-primary" id="btn-add-tutor">+ Yangi Tutor</button>
+                <h2>Barcha Tyutorlar</h2>
+                <button class="btn btn-primary" id="btn-add-tutor">+ Yangi Tyutor</button>
             </div>
             <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
                 ${tutors.map(t => {
@@ -926,7 +1096,7 @@ export async function renderAdmin(container) {
             </div>
         `;
 
-        const renderTutorModal = (existingTutor = null) => {
+        const renderTyutorModal = (existingTyutor = null) => {
             const oldName = existingTutor || '';
             const selectableGs = gs.filter(g => !g.tutor || g.tutor === oldName).sort((x, y) => x.name.localeCompare(y.name));
             const faculties = [...new Set(gs.map(g => g.faculty || 'Akademiya'))].sort();
@@ -937,7 +1107,7 @@ export async function renderAdmin(container) {
             const initialSelectedIds = new Set(currentSelectedIds);
 
             const html = `
-                <div class="input-group mb-3"><label>Tutor ismi</label><input type="text" id="tm-n" value="${oldName}" placeholder="Tutor ismi..."></div>
+                <div class="input-group mb-3"><label>Tyutor ismi</label><input type="text" id="tm-n" value="${oldName}" placeholder="Tyutor ismi..."></div>
                 
                 <div class="flex-between mb-2">
                     <label style="font-weight:700">Guruhlarni biriktirish (Tanlangan: <span id="tm-count">${currentSelectedIds.size}</span>):</label>
@@ -960,15 +1130,15 @@ export async function renderAdmin(container) {
                 </div>
             `;
 
-            const modal = showModal(existingTutor ? 'Tutorni tahrirlash' : 'Yangi Tutor', html, async (m) => {
+            const modal = showModal(existingTyutor ? 'Tyutorni tahrirlash' : 'Yangi Tyutor', html, async (m) => {
                 const newName = m.querySelector('#tm-n').value;
-                if (!newName) { showToast("Tutor ismini kiriting", "warning"); return false; }
+                if (!newName) { showToast("Tyutor ismini kiriting", "warning"); return false; }
 
                 // 1. Assign selected groups
                 for (const id of currentSelectedIds) {
                     await updateDoc(doc(db, "groups", id), { tutor: newName });
                 }
-                
+
                 // 2. Remove from groups that were deselected
                 if (existingTutor) {
                     for (const id of initialSelectedIds) {
@@ -1007,7 +1177,7 @@ export async function renderAdmin(container) {
                         <div style="font-size:0.8rem"><strong>${g.name}</strong> <p class="text-muted small" style="margin:0">${g.course}-kurs • ${g.faculty || '---'}</p></div>
                     </label>
                 `).join('') || '<p class="text-muted small p-2" style="grid-column: 1/-1">Guruhlar topilmadi</p>';
-                
+
                 // Attach individual listeners to checkboxes
                 listArea.querySelectorAll('.et-g').forEach(cb => {
                     cb.onchange = (e) => {
@@ -1024,19 +1194,19 @@ export async function renderAdmin(container) {
             updateList();
         };
 
-        document.getElementById('btn-add-tutor').onclick = () => renderTutorModal();
+        document.getElementById('btn-add-tutor').onclick = () => renderTyutorModal();
 
         area.querySelectorAll('.del-tutor').forEach(b => {
             b.onclick = async () => {
-                if (!confirm(`"${b.dataset.name}" tutorni o'chirmoqchimisiz? Guruhlar tutorsiz qoladi.`)) return;
+                if (!confirm(`"${b.dataset.name}" tyutorni o'chirmoqchimisiz? Guruhlar tyutorsiz qoladi.`)) return;
                 const affected = gs.filter(g => g.tutor === b.dataset.name);
                 for (const g of affected) await updateDoc(doc(db, "groups", g.id), { tutor: "" });
-                showToast("Tutor o'chirildi", "success"); clearCache(); renderTab();
+                showToast("Tyutor o'chirildi", "success"); clearCache(); renderTab();
             };
         });
 
         area.querySelectorAll('.edit-tutor').forEach(b => {
-            b.onclick = () => renderTutorModal(b.dataset.name);
+            b.onclick = () => renderTyutorModal(b.dataset.name);
         });
         if (window.lucide) window.lucide.createIcons();
     }
@@ -1234,10 +1404,15 @@ export async function renderAdmin(container) {
                     const l = `${baseUrl}#test/${a.token}`;
                     return `<tr>
                                     <td><input type="checkbox" class="sel-a" data-id="${a.id}"></td>
-                                    <td><strong>${g?.name} (${g?.course}-kurs)</strong><p class="text-muted small">${g?.tutor || 'Tutorsiz'}</p></td>
+                                    <td><strong>${g?.name} (${g?.course}-kurs)</strong><p class="text-muted small">${g?.tutor || 'Tyutorsiz'}</p></td>
                                     <td><label class="switch"><input type="checkbox" class="tog-a" data-id="${a.id}" ${a.active ? 'checked' : ''}><span class="slider round"></span></label></td>
                                     <td><div class="flex-gap"><code style="background:var(--primary-light); padding:4px 8px; border-radius:8px; color:var(--primary); font-size:0.8rem">${l}</code><button class="btn btn-sm btn-icon c-link" data-link="${l}"><i data-lucide="copy" style="width:14px"></i></button></div></td>
-                                    <td class="text-center"><button class="btn-icon text-danger del-a" data-id="${a.id}"><i data-lucide="trash-2"></i></button></td>
+                                    <td class="text-center">
+                                        <div class="flex-gap" style="justify-content:center">
+                                            <button class="btn-icon text-warning restart-a" data-id="${a.id}" title="Qayta boshlash"><i data-lucide="refresh-cw" style="width:16px"></i></button>
+                                            <button class="btn-icon text-danger del-a" data-id="${a.id}"><i data-lucide="trash-2" style="width:16px"></i></button>
+                                        </div>
+                                    </td>
                                 </tr>`
                 }).join('')}</tbody>
                         </table>
@@ -1252,69 +1427,141 @@ export async function renderAdmin(container) {
                 const test = tests.find(t => t.id === tId);
                 const tAs = assigns.filter(a => a.testId === tId);
 
-                // Group by tutor
-                const tutorGroups = {};
+                // Group by tyutor
+                const tyutorGroups = {};
                 tAs.forEach(a => {
                     const g = groups.find(gx => gx.id === a.groupId);
-                    const tutorName = g?.tutor || 'Tutorsiz';
-                    if (!tutorGroups[tutorName]) tutorGroups[tutorName] = [];
-                    tutorGroups[tutorName].push({ groupName: g?.name, link: `${baseUrl}#test/${a.token}` });
+                    const tyutorName = g?.tutor || 'Tyutorsiz';
+                    if (!tyutorGroups[tyutorName]) tyutorGroups[tyutorName] = [];
+                    tyutorGroups[tyutorName].push({
+                        groupName: g?.name,
+                        link: `${baseUrl}#test/${a.token}`,
+                        faculty: g?.faculty || 'IIXM',
+                        course: g?.course || '---'
+                    });
                 });
 
-                const tutors = Object.keys(tutorGroups).sort();
+                const tyutors = Object.keys(tyutorGroups).sort();
 
                 const html = `
                     <div class="flex-between mb-3" style="padding: 0 5px;">
-                        <h4 style="margin:0; opacity:0.7">Hamma tutorlar uchun</h4>
+                        <h4 style="margin:0; opacity:0.7">Hamma tyutorlar uchun</h4>
                         <button class="btn btn-primary" id="copy-all-tutors-bulk" style="box-shadow: 0 5px 15px rgba(67, 24, 255, 0.2)">
                             <i data-lucide="copy" style="width:16px"></i> Barchasini bittada nusxalash
                         </button>
                     </div>
                     <div class="tutor-links-list">
-                        ${tutors.map(tName => `
+                        ${tyutors.map(tName => `
                             <div class="card mb-3 p-3" style="border: 1px solid rgba(0,0,0,0.05)">
                                 <div class="flex-between mb-2">
                                     <h4 style="margin:0">${tName}</h4>
                                     <button class="btn btn-sm btn-primary copy-tutor-all" data-tutor="${tName}">Barchasini nusxalash</button>
                                 </div>
                                 <div class="small text-muted">
-                                    ${tutorGroups[tName].map(tg => `<div>• ${tg.groupName}: ${tg.link}</div>`).join('')}
+                                    ${tyutorGroups[tName].map(tg => `<div>• ${tg.groupName}: ${tg.link}</div>`).join('')}
                                 </div>
                             </div>
                         `).join('')}
                     </div>
                 `;
 
-                const modal = showModal(`${test.title} - Tutorlar bo'yicha`, html, (m) => {
+                const modal = showModal(`${test.title} - Tyutorlar bo'yicha`, html, (m) => {
                     return true; // Close on Yopish click
                 }, "Yopish");
+
+                const buildMessage = (tName, tLinks) => {
+                    const message = `📣📣 DIQQAT SO'ROVNOMA !!! 🔈🔈
+
+#IIAU #SO'ROVNOMA
+
+✔️O'zbekiston xalqaro islomshunoslik akademiyasi talabalari uchun "Psixologik so'rovnoma" o'tkazilmoqda. ❗️
+  👨‍🏫Hurmatli tyutor ${tName}, talabalaringizni bu so'rovnomada faol ishtirok etishini taminlashingizni so'raymiz. 
+  
+Eslatma: Har bir guruh uchun alohida maxsus link berilgan bo'lib, siz bu havolalarni berilgan guruhlargagina tarqatishingiz va ular orqali siz ham kimlar ishtirok etmaganini ko'rishingiz mumkin !
+
+${tLinks.map(tg => `🏛 Fakultet: ${tg.faculty}\n🎓 Kurs: ${tg.course}\n👥 Guruh: ${tg.groupName}\n🌐 LINK: ${tg.link}`).join('\n\n')}
+
+
+💡 Faol bo'ling, har bir talabaning har bir javobi biz uchun juda muhim!
+📲 Murojaat uchun: @ZAYNAB8888`;
+                    return "`" + message + "`";
+                };
 
                 modal.querySelectorAll('.copy-tutor-all').forEach(btn => {
                     btn.onclick = () => {
                         const tName = btn.dataset.tutor;
-                        const tLinks = tutorGroups[tName];
-                        const message = `Assalomu alaykum ${tName},\n${test.title} testi uchun guruhlaringiz havolalari:\n\n${tLinks.map(tg => `${tg.groupName}: ${tg.link}`).join('\n')}`;
-                        navigator.clipboard.writeText(message);
+                        const tLinks = tyutorGroups[tName];
+                        navigator.clipboard.writeText(buildMessage(tName, tLinks));
                         showToast(`${tName} uchun havolalar nusxalandi`, "success");
                     };
                 });
 
                 modal.querySelector('#copy-all-tutors-bulk').onclick = () => {
-                    let fullMessage = `Assalomu alaykum hurmatli tutorlar,\n${test.title} testi uchun guruhlar havolalari:\n\n`;
-
-                    tutors.forEach((tName, index) => {
-                        const tLinks = tutorGroups[tName];
-                        fullMessage += `${index + 1}. ${tName}:\n`;
-                        tLinks.forEach(tg => {
-                            fullMessage += `• ${tg.groupName}: ${tg.link}\n`;
-                        });
-                        fullMessage += `\n`;
+                    let fullMessage = "";
+                    tyutors.forEach((tName) => {
+                        fullMessage += buildMessage(tName, tyutorGroups[tName]) + "\n\n";
                     });
-
                     navigator.clipboard.writeText(fullMessage.trim());
-                    showToast("Barcha tutorlar uchun havolalar nusxalandi", "success");
+                    showToast("Barcha tyutorlar uchun havolalar nusxalandi", "success");
                 };
             });
+            area.querySelectorAll('.restart-a').forEach(b => b.onclick = async () => {
+                if (!confirm("Ushbu havolani restart qilmoqchimisiz? Barcha mavjud natijalar o'chib ketadi!")) return;
+                const aId = b.dataset.id;
+                const assign = assigns.find(a => a.id === aId);
+                if (!assign) return;
+
+                const test = tests.find(t => t.id === assign.testId);
+                const tIds = test?.type === 'merged' ? test.testIds : [assign.testId];
+                const tTitles = tests.filter(t => tIds.includes(t.id)).map(t => t.title);
+
+                const qS = query(collection(db, "submissions"), where("assignmentId", "==", aId));
+                const snapS = await getDocs(qS);
+                const total = snapS.docs.length;
+
+                const progressToast = showToast(`0/${total} ta natija o'chirilmoqda...`, "info", Infinity);
+                let count = 0;
+                for (const d of snapS.docs) {
+                    await deleteDoc(doc(db, "submissions", d.id));
+                    count++;
+                    progressToast.update(`${count}/${total} ta natija o'chirilmoqda...`);
+                }
+
+                // Clear from student profile in groups
+                try {
+                    const gRef = doc(db, "groups", assign.groupId);
+                    const gSnap = await getDoc(gRef);
+                    if (gSnap.exists()) {
+                        const gData = gSnap.data();
+                        let changed = false;
+                        (gData.students || []).forEach(s => {
+                            if (s.profileData) {
+                                tTitles.forEach(title => { if (s.profileData[title]) { delete s.profileData[title]; changed = true; } });
+                            }
+                            if (s.portrait) {
+                                const newPortrait = [];
+                                let skipMode = false;
+                                s.portrait.forEach(entry => {
+                                    if (entry.label === "--- SECTION ---" && tTitles.includes(entry.value)) {
+                                        skipMode = true;
+                                        changed = true;
+                                    } else if (entry.label === "--- SECTION ---") {
+                                        skipMode = false;
+                                    }
+                                    if (!skipMode) newPortrait.push(entry);
+                                });
+                                s.portrait = newPortrait;
+                            }
+                        });
+                        if (changed) await updateDoc(gRef, { students: gData.students });
+                    }
+                } catch (err) { console.error("Profile clear error:", err); }
+
+                progressToast.close();
+                showToast("Havola muvaffaqiyatli restart qilindi", "success");
+                clearCache(); renderTab();
+            });
+
             area.querySelectorAll('.tog-a').forEach(b => b.onchange = async (e) => { await updateDoc(doc(db, "assignments", b.dataset.id), { active: e.target.checked }); showToast("Holat yangilandi", "success"); });
             area.querySelectorAll('.del-a').forEach(b => b.onclick = async () => { if (confirm("O'chirilsinmi?")) { await deleteDoc(doc(db, "assignments", b.dataset.id)); clearCache(); renderTab(); } });
 
@@ -1339,8 +1586,10 @@ export async function renderAdmin(container) {
 
             if (!selectedGIds.length) return showToast("Guruhlarni tanlang", "warning");
 
-            showToast(`${selectedGIds.length} ta guruh uchun havolalar yaratilmoqda...`, "info");
+            const total = selectedGIds.length;
+            const progressToast = showToast(`0/${total} ta havola tayyorlanmoqda...`, "info", Infinity);
 
+            let count = 0;
             for (const gId of selectedGIds) {
                 const token = Math.random().toString(36).substring(2, 8).toUpperCase();
                 await addDoc(collection(db, "assignments"), {
@@ -1351,8 +1600,11 @@ export async function renderAdmin(container) {
                     active: true,
                     createdAt: serverTimestamp()
                 });
+                count++;
+                progressToast.update(`${count}/${total} ta havola tayyorlanmoqda...`);
             }
 
+            progressToast.close();
             showToast("Havolalar muvaffaqiyatli yaratildi", "success");
             clearCache();
             renderTab();
@@ -1360,7 +1612,17 @@ export async function renderAdmin(container) {
 
         document.getElementById('btn-bulk-del').onclick = async () => {
             if (!confirm("Tanlanganlarni o'chirasizmi?")) return;
-            for (const cb of area.querySelectorAll('.sel-a:checked')) { await deleteDoc(doc(db, "assignments", cb.dataset.id)); }
+            const checked = Array.from(area.querySelectorAll('.sel-a:checked'));
+            const total = checked.length;
+            const progressToast = showToast(`0/${total} ta biriktirma o'chirilmoqda...`, "info", Infinity);
+            let count = 0;
+            for (const cb of checked) {
+                await deleteDoc(doc(db, "assignments", cb.dataset.id));
+                count++;
+                progressToast.update(`${count}/${total} ta biriktirma o'chirilmoqda...`);
+            }
+            progressToast.close();
+            showToast("Muvaffaqiyatli o'chirildi", "success");
             clearCache(); renderTab();
         };
 
@@ -1566,7 +1828,9 @@ export async function renderAdmin(container) {
                             ${(() => {
                         const studentObj = g.students.find(s => s.name === name);
                         const profileSub = subs.find(s => s.isProfileData);
-                        const rawPortrait = profileSub?.portraitData || studentObj?.portrait || studentObj?.profileData || {};
+                        // IMPORTANT: Prioritize the accumulated portrait array in the student object
+                        // as it contains merged data from all parts of a test sequence.
+                        const rawPortrait = studentObj?.portrait || studentObj?.profileData || profileSub?.portraitData || {};
                         // Convert to array if it's an object
                         const portraitData = (Array.isArray(rawPortrait) ? rawPortrait : Object.entries(rawPortrait).map(([label, value]) => ({ label, value })))
                             .filter(d => d.value && d.value !== "---");
@@ -1638,7 +1902,7 @@ export async function renderAdmin(container) {
                                     `;
                         }).join('');
 
-                        const remainingItems = portraitData.filter((_, idx) => !usedIndices.has(idx));
+                        const remainingItems = portraitData.filter((item, idx) => !usedIndices.has(idx) && item.label !== "--- SECTION ---");
                         const customHtml = remainingItems.length > 0 ? `
                                     <div class="mt-4 pt-3 border-top" id="custom-fields-area">
                                         <h5 style="color:var(--text-muted); font-size:0.7rem; font-weight:800; letter-spacing:2px; text-transform:uppercase; margin-bottom:15px">QO'SHIMCHA MA'LUMOTLAR</h5>

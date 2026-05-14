@@ -68,7 +68,8 @@ function updateNav(isTesting = false, isAdminView = false) {
     const isLogged = isAdmin();
     const navbar = document.querySelector('.navbar');
     
-    if (isAdminView || isTesting) {
+    // Hide navbar for admin, testing, and login views
+    if (isAdminView || isTesting || state.currentView === 'login') {
         if (navbar) navbar.style.display = 'none';
         return;
     } else {

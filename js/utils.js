@@ -1,4 +1,4 @@
-export function showToast(message, type = 'info') {
+export function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
     toast.className = `toast toast-${type} animate-fade`;
@@ -8,14 +8,28 @@ export function showToast(message, type = 'info') {
     if(type === 'error') icon = 'alert-circle';
     if(type === 'warning') icon = 'alert-triangle';
 
-    toast.innerHTML = `<i data-lucide="${icon}"></i> <span>${message}</span>`;
+    toast.innerHTML = `<i data-lucide="${icon}"></i> <span class="toast-message">${message}</span>`;
     container.appendChild(toast);
     if (window.lucide) window.lucide.createIcons();
 
-    setTimeout(() => {
+    const remove = () => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 500);
-    }, 3000);
+    };
+
+    let timeout;
+    if (duration !== Infinity) {
+        timeout = setTimeout(remove, duration);
+    }
+
+    return {
+        element: toast,
+        update: (newMessage) => {
+            toast.querySelector('.toast-message').innerText = newMessage;
+        },
+        remove,
+        close: remove
+    };
 }
 
 import { auth } from './firebase-config.js';
