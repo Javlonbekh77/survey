@@ -1406,7 +1406,7 @@ export async function renderAdmin(container) {
                                     <td><input type="checkbox" class="sel-a" data-id="${a.id}"></td>
                                     <td><strong>${g?.name} (${g?.course}-kurs)</strong><p class="text-muted small">${g?.tutor || 'Tyutorsiz'}</p></td>
                                     <td><label class="switch"><input type="checkbox" class="tog-a" data-id="${a.id}" ${a.active ? 'checked' : ''}><span class="slider round"></span></label></td>
-                                    <td><div class="flex-gap"><code style="background:var(--primary-light); padding:4px 8px; border-radius:8px; color:var(--primary); font-size:0.8rem">${l}</code><button class="btn btn-sm btn-icon c-link" data-link="${l}"><i data-lucide="copy" style="width:14px"></i></button></div></td>
+                                    <td><div class="flex-gap"><code style="background:var(--primary-light); padding:4px 8px; border-radius:8px; color:var(--primary); font-size:0.8rem">${l.replace(/^https?:\/\//, '')}</code><button class="btn btn-sm btn-icon c-link" data-link="${l.replace(/^https?:\/\//, '')}"><i data-lucide="copy" style="width:14px"></i></button></div></td>
                                     <td class="text-center">
                                         <div class="flex-gap" style="justify-content:center">
                                             <button class="btn-icon text-warning restart-a" data-id="${a.id}" title="Qayta boshlash"><i data-lucide="refresh-cw" style="width:16px"></i></button>
@@ -1458,7 +1458,7 @@ export async function renderAdmin(container) {
                                     <button class="btn btn-sm btn-primary copy-tutor-all" data-tutor="${tName}">Barchasini nusxalash</button>
                                 </div>
                                 <div class="small text-muted">
-                                    ${tyutorGroups[tName].map(tg => `<div>• ${tg.groupName}: ${tg.link}</div>`).join('')}
+                                    ${tyutorGroups[tName].map(tg => `<div>• ${tg.groupName}: ${tg.link.replace(/^https?:\/\//, '')}</div>`).join('')}
                                 </div>
                             </div>
                         `).join('')}
@@ -1470,6 +1470,9 @@ export async function renderAdmin(container) {
                 }, "Yopish");
 
                 const buildMessage = (tName, tLinks) => {
+                    const fac = tLinks[0]?.faculty || '---';
+                    const groupsContent = tLinks.map(tg => `🎓 Kurs: ${tg.course}\n👥 Guruh: ${tg.groupName}\n🌐 LINK: ${tg.link.replace(/^https?:\/\//, '')}`).join('\n\n');
+
                     const message = `📣📣 DIQQAT SO'ROVNOMA !!! 🔈🔈
 
 #IIAU #SO'ROVNOMA
@@ -1479,7 +1482,9 @@ export async function renderAdmin(container) {
   
 Eslatma: Har bir guruh uchun alohida maxsus link berilgan bo'lib, siz bu havolalarni berilgan guruhlargagina tarqatishingiz va ular orqali siz ham kimlar ishtirok etmaganini ko'rishingiz mumkin !
 
-${tLinks.map(tg => `🏛 Fakultet: ${tg.faculty}\n🎓 Kurs: ${tg.course}\n👥 Guruh: ${tg.groupName}\n🌐 LINK: ${tg.link}`).join('\n\n')}
+🏛 Fakultet: ${fac}
+
+${groupsContent}
 
 
 💡 Faol bo'ling, har bir talabaning har bir javobi biz uchun juda muhim!
