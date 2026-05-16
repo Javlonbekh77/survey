@@ -296,7 +296,7 @@ export async function renderTest(container, params) {
 async function renderIntro(container) {
     const [snapGroup, snapSubs] = await Promise.all([
         getDoc(doc(db, "groups", assignment.groupId)),
-        getDocs(query(collection(db, "submissions"), where("assignmentId", "==", assignment.id)))
+        getDocs(query(collection(db, "submissions"), where("groupId", "==", assignment.groupId), where("testId", "==", assignment.testId)))
     ]);
 
     const groupData = snapGroup.data();
