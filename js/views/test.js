@@ -279,6 +279,87 @@ export async function renderTest(container, params) {
                 .ms-input { width: 100%; border: 2px solid #E2E8F0; border-radius: 18px; padding: 15px; font-family: inherit; font-weight: 700; outline: none; margin-top: 10px; }
                 .ms-input:focus { border-color: var(--ms-primary); }
 
+                /* Completion Stats & Submitted List */
+                .ms-stats-box {
+                    background: rgba(45, 212, 191, 0.08);
+                    border: 1px solid rgba(45, 212, 191, 0.15);
+                    border-radius: 16px;
+                    padding: 12px 15px;
+                    margin-bottom: 20px;
+                    text-align: left;
+                }
+                .ms-stats-title {
+                    font-size: 0.78rem;
+                    font-weight: 800;
+                    color: #1b2559;
+                    opacity: 0.9;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 8px;
+                    display: flex;
+                    justify-content: space-between;
+                }
+                .ms-stats-progress-bg {
+                    height: 8px;
+                    background: rgba(0, 0, 0, 0.05);
+                    border-radius: 4px;
+                    overflow: hidden;
+                }
+                .ms-stats-progress-fill {
+                    height: 100%;
+                    background: var(--ms-primary);
+                    box-shadow: 0 0 8px var(--ms-primary);
+                    border-radius: 4px;
+                    transition: width 0.5s ease-out;
+                }
+                .ms-submitted-section {
+                    margin-top: 25px;
+                    text-align: left;
+                    border-top: 1px solid rgba(0,0,0,0.05);
+                    padding-top: 20px;
+                }
+                .ms-submitted-header {
+                    font-size: 0.75rem;
+                    font-weight: 800;
+                    color: #64748B;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 12px;
+                }
+                .ms-submitted-grid {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    max-height: 150px;
+                    overflow-y: auto;
+                    padding-right: 5px;
+                }
+                .ms-submitted-grid::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .ms-submitted-grid::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .ms-submitted-grid::-webkit-scrollbar-thumb {
+                    background: rgba(0, 0, 0, 0.1);
+                    border-radius: 2px;
+                }
+                .ms-submitted-tag {
+                    font-size: 0.72rem;
+                    font-weight: 700;
+                    background: #F1F5F9;
+                    color: #475569;
+                    padding: 6px 12px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    border: 1px solid rgba(0,0,0,0.02);
+                }
+                .ms-submitted-tag i {
+                    color: #05CD99;
+                }
+
                 @media (min-width: 1024px) {
                     .ms-wrapper { max-width: 800px; padding: 40px; }
                     .ms-question-card { max-height: none; }
@@ -296,22 +377,57 @@ export async function renderTest(container, params) {
 async function renderIntro(container) {
     const [snapGroup, snapSubs] = await Promise.all([
         getDoc(doc(db, "groups", assignment.groupId)),
-        getDocs(query(collection(db, "submissions"), where("groupId", "==", assignment.groupId), where("testId", "==", assignment.testId)))
+        getDocs(query(collection(db, "submissions"), where("assignmentId", "==", assignment.id)))
     ]);
 
     const groupData = snapGroup.data();
-    const completedNames = new Set(snapSubs.docs.map(d => d.data().studentName));
-    const availableStudents = (groupData.students || []).filter(s => !completedNames.has(s.name));
+    const allStudents = groupData.students || [];
+
+    // Find the last test ID in the sequence (merged or single)
+    const lastTestId = mergedIds.length > 0 ? mergedIds[mergedIds.length - 1] : assignment.testId;
+
+    // A student is completed if they have a submission for the last test in this assignment
+    const completedNames = new Set(
+        snapSubs.docs
+            .filter(d => d.data().testId === lastTestId)
+            .map(d => d.data().studentName)
+    );
+
+    // List of ALL students who have submitted the final test (completed)
+    const completedStudents = allStudents.filter(s => completedNames.has(s.name));
+
+    // List of students who have not completed yet (available to start the test)
+    const availableStudents = allStudents.filter(s => !completedNames.has(s.name));
+
+    const totalCount = allStudents.length;
+    const completedCount = completedStudents.length;
+    const remainingCount = totalCount - completedCount;
+    const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
     container.innerHTML = `
         <div class="ms-page ms-animate-fade">
-            <div class="ms-wrapper" style="justify-content: center">
-                <div class="ms-question-card" style="text-align: center">
-                    <div class="ms-logo" style="margin-bottom: 20px; font-size: 3rem">🧠</div>
-                    <h1 style="font-size: 1.8rem; font-weight: 900; margin-bottom: 10px; color: #1B2559">${test.title}</h1>
-                    <p style="opacity: 0.6; margin-bottom: 30px; color: #1B2559">Ismingizni tanlab testni boshlang</p>
+            <div class="ms-wrapper" style="justify-content: center; max-width: 500px; padding: 20px;">
+                <div class="ms-question-card" style="text-align: center; max-width: 100%;">
+                    <div class="ms-logo" style="margin-bottom: 15px; font-size: 3rem">🧠</div>
+                    <h1 style="font-size: 1.6rem; font-weight: 900; margin-bottom: 5px; color: #1B2559; line-height: 1.2">${test.title}</h1>
+                    <p style="opacity: 0.6; margin-bottom: 20px; color: #1B2559; font-weight: 600; font-size: 0.85rem">Ismingizni tanlab testni boshlang</p>
                     
-                    <select id="student-name-select" class="ms-input" style="background: #F8FAFC; margin-bottom: 25px; color: #1B2559">
+                    <!-- Completion Progress Statistics -->
+                    <div class="ms-stats-box">
+                        <div class="ms-stats-title">
+                            <span>Topshirish ko'rsatkichi</span>
+                            <span>${completedCount} / ${totalCount} (${progressPercent}%)</span>
+                        </div>
+                        <div class="ms-stats-progress-bg">
+                            <div class="ms-stats-progress-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <div style="font-size: 0.72rem; color: #64748B; font-weight: 700; margin-top: 8px; display: flex; justify-content: space-between;">
+                            <span>Topshirganlar: ${completedCount} ta</span>
+                            <span>Qoldi: ${remainingCount} ta</span>
+                        </div>
+                    </div>
+
+                    <select id="student-name-select" class="ms-input" style="background: #F8FAFC; margin-bottom: 20px; color: #1B2559">
                         <option value="">Ro'yxatdan tanlang...</option>
                         ${availableStudents.map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
                     </select>
@@ -319,6 +435,22 @@ async function renderIntro(container) {
                     <button class="ms-next-btn" id="start-btn" style="width: 100%; justify-content: center; height: 55px; border-radius: 18px">
                         Boshlash <i data-lucide="arrow-right"></i>
                     </button>
+
+                    <!-- List of completed students -->
+                    <div class="ms-submitted-section">
+                        <div class="ms-submitted-header">Topshirgan talabalar (${completedCount})</div>
+                        <div class="ms-submitted-grid">
+                            ${completedStudents.length > 0 ? 
+                                completedStudents.map(s => `
+                                    <div class="ms-submitted-tag">
+                                        <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i>
+                                        <span>${s.name}</span>
+                                    </div>
+                                `).join('') 
+                                : `<div style="font-size: 0.75rem; color: #94A3B8; font-weight: 600;">Hozircha hech kim topshirmadi. Birinchi bo'lib boshlang!</div>`
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

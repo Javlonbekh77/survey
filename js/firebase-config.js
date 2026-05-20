@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
@@ -21,10 +21,14 @@ let isMock = false;
 
 try {
     app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
+    db = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager()
+        })
+    });
     auth = getAuth(app);
     storage = getStorage(app);
-    console.log("✅ Firebase initialized");
+    console.log("✅ Firebase initialized with persistent local cache");
 } catch (error) {
     console.error("❌ Firebase error, switching to mock mode:", error);
     isMock = true;

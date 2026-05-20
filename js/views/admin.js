@@ -1,6 +1,6 @@
 import { db, isMock, mockData, storage } from '../firebase-config.js';
 import {
-    collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, orderBy, getDoc, limit, serverTimestamp
+    collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, orderBy, getDoc, limit, serverTimestamp, getCountFromServer
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { showToast, logout, getCached, setCache, clearCache, showModal, toggleTheme, initTheme } from '../utils.js';
@@ -153,30 +153,50 @@ export async function renderAdmin(container) {
     // --- DASHBOARD ---
     async function renderDashboard(area) {
         pageTitle.innerText = "IIAU Dashboard";
-        const [tests, groups, submissionsSnap] = await Promise.all([
-            fetchData("tests"),
-            fetchData("groups"),
-            getDocs(query(collection(db, "submissions"), orderBy("timestamp", "desc")))
-        ]);
 
-        const subs = submissionsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const recentSubs = subs.slice(0, 5);
+        const now = new Date();
+        const last24h = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+
+        let tests = [];
+        let groups = [];
+        let totalSubsCount = 0;
+        let todaySubs = 0;
+        let recentSubs = [];
+        let recentActivitySubs = [];
+
+        if (isMock) {
+            tests = mockData.tests;
+            groups = mockData.groups;
+            totalSubsCount = 0;
+            todaySubs = 0;
+            recentSubs = [];
+            recentActivitySubs = [];
+        } else {
+            const [tData, gData, totalSubsSnap, todaySubsSnap, recentSubsSnap, recentActivitySnap] = await Promise.all([
+                fetchData("tests"),
+                fetchData("groups"),
+                getCountFromServer(collection(db, "submissions")),
+                getCountFromServer(query(collection(db, "submissions"), where("timestamp", ">=", last24h))),
+                getDocs(query(collection(db, "submissions"), orderBy("timestamp", "desc"), limit(10))),
+                getDocs(query(collection(db, "submissions"), orderBy("timestamp", "desc"), limit(100)))
+            ]);
+            tests = tData;
+            groups = gData;
+            totalSubsCount = totalSubsSnap.data().count;
+            todaySubs = todaySubsSnap.data().count;
+            recentSubs = recentSubsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            recentActivitySubs = recentActivitySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+
         let sCount = 0; groups.forEach(g => sCount += (g.students?.length || 0));
 
-        // Calculate stats
-        const now = new Date();
-        const last24h = now.getTime() - (24 * 60 * 60 * 1000);
-        const todaySubs = subs.filter(s => {
-            const ts = s.timestamp?.seconds ? s.timestamp.seconds * 1000 : 0;
-            return ts > last24h;
-        }).length;
-
+        // Calculate stats based on recent activity (last 100 submissions)
         const testStats = {};
-        subs.forEach(s => testStats[s.testTitle] = (testStats[s.testTitle] || 0) + 1);
+        recentActivitySubs.forEach(s => testStats[s.testTitle] = (testStats[s.testTitle] || 0) + 1);
         const topTests = Object.entries(testStats).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
         const groupStats = {};
-        subs.forEach(s => {
+        recentActivitySubs.forEach(s => {
             const g = groups.find(gx => gx.id === s.groupId);
             const gName = g?.name || 'Noma\'lum';
             groupStats[gName] = (groupStats[gName] || 0) + 1;
@@ -188,7 +208,7 @@ export async function renderAdmin(container) {
                 <div class="card stat-card animate-scale" style="animation-delay: 0.1s"><div class="icon-circle primary"><i data-lucide="brain"></i></div><div><p class="text-muted small">Metodikalar</p><h3>${tests.length}</h3></div></div>
                 <div class="card stat-card animate-scale" style="animation-delay: 0.2s"><div class="icon-circle secondary"><i data-lucide="component"></i></div><div><p class="text-muted small">Guruhlar</p><h3>${groups.length}</h3></div></div>
                 <div class="card stat-card animate-scale" style="animation-delay: 0.3s"><div class="icon-circle accent"><i data-lucide="graduation-cap"></i></div><div><p class="text-muted small">Talabalar</p><h3>${sCount}</h3></div></div>
-                <div class="card stat-card animate-scale" style="animation-delay: 0.4s"><div class="icon-circle success"><i data-lucide="activity"></i></div><div><p class="text-muted small">Jami Natijalar</p><h3>${subs.length}</h3></div></div>
+                <div class="card stat-card animate-scale" style="animation-delay: 0.4s"><div class="icon-circle success"><i data-lucide="activity"></i></div><div><p class="text-muted small">Jami Natijalar</p><h3>${totalSubsCount}</h3></div></div>
             </div>
 
             <div class="grid grid-2">
@@ -1492,184 +1512,184 @@ ${groupsContent}
                     return "`" + message + "`";
                 };
 
-    modal.querySelectorAll('.copy-tutor-all').forEach(btn => {
-        btn.onclick = () => {
-            const tName = btn.dataset.tutor;
-            const tLinks = tyutorGroups[tName];
-            navigator.clipboard.writeText(buildMessage(tName, tLinks));
-            showToast(`${tName} uchun havolalar nusxalandi`, "success");
-        };
-    });
+                modal.querySelectorAll('.copy-tutor-all').forEach(btn => {
+                    btn.onclick = () => {
+                        const tName = btn.dataset.tutor;
+                        const tLinks = tyutorGroups[tName];
+                        navigator.clipboard.writeText(buildMessage(tName, tLinks));
+                        showToast(`${tName} uchun havolalar nusxalandi`, "success");
+                    };
+                });
 
-    modal.querySelector('#copy-all-tutors-bulk').onclick = () => {
-        let fullMessage = "";
-        tyutors.forEach((tName) => {
-            fullMessage += buildMessage(tName, tyutorGroups[tName]) + "\n\n";
-        });
-        navigator.clipboard.writeText(fullMessage.trim());
-        showToast("Barcha tyutorlar uchun havolalar nusxalandi", "success");
-    };
-});
-area.querySelectorAll('.restart-a').forEach(b => b.onclick = async () => {
-    if (!confirm("Ushbu havolani restart qilmoqchimisiz? Barcha mavjud natijalar o'chib ketadi!")) return;
-    const aId = b.dataset.id;
-    const assign = assigns.find(a => a.id === aId);
-    if (!assign) return;
-
-    const test = tests.find(t => t.id === assign.testId);
-    const tIds = test?.type === 'merged' ? test.testIds : [assign.testId];
-    const tTitles = tests.filter(t => tIds.includes(t.id)).map(t => t.title);
-
-    const qS = query(collection(db, "submissions"), where("assignmentId", "==", aId));
-    const snapS = await getDocs(qS);
-    const total = snapS.docs.length;
-
-    const progressToast = showToast(`0/${total} ta natija o'chirilmoqda...`, "info", Infinity);
-    let count = 0;
-    for (const d of snapS.docs) {
-        await deleteDoc(doc(db, "submissions", d.id));
-        count++;
-        progressToast.update(`${count}/${total} ta natija o'chirilmoqda...`);
-    }
-
-    // Clear from student profile in groups
-    try {
-        const gRef = doc(db, "groups", assign.groupId);
-        const gSnap = await getDoc(gRef);
-        if (gSnap.exists()) {
-            const gData = gSnap.data();
-            let changed = false;
-            (gData.students || []).forEach(s => {
-                if (s.profileData) {
-                    tTitles.forEach(title => { if (s.profileData[title]) { delete s.profileData[title]; changed = true; } });
-                }
-                if (s.portrait) {
-                    const newPortrait = [];
-                    let skipMode = false;
-                    s.portrait.forEach(entry => {
-                        if (entry.label === "--- SECTION ---" && tTitles.includes(entry.value)) {
-                            skipMode = true;
-                            changed = true;
-                        } else if (entry.label === "--- SECTION ---") {
-                            skipMode = false;
-                        }
-                        if (!skipMode) newPortrait.push(entry);
+                modal.querySelector('#copy-all-tutors-bulk').onclick = () => {
+                    let fullMessage = "";
+                    tyutors.forEach((tName) => {
+                        fullMessage += buildMessage(tName, tyutorGroups[tName]) + "\n\n";
                     });
-                    s.portrait = newPortrait;
+                    navigator.clipboard.writeText(fullMessage.trim());
+                    showToast("Barcha tyutorlar uchun havolalar nusxalandi", "success");
+                };
+            });
+            area.querySelectorAll('.restart-a').forEach(b => b.onclick = async () => {
+                if (!confirm("Ushbu havolani restart qilmoqchimisiz? Barcha mavjud natijalar o'chib ketadi!")) return;
+                const aId = b.dataset.id;
+                const assign = assigns.find(a => a.id === aId);
+                if (!assign) return;
+
+                const test = tests.find(t => t.id === assign.testId);
+                const tIds = test?.type === 'merged' ? test.testIds : [assign.testId];
+                const tTitles = tests.filter(t => tIds.includes(t.id)).map(t => t.title);
+
+                const qS = query(collection(db, "submissions"), where("assignmentId", "==", aId));
+                const snapS = await getDocs(qS);
+                const total = snapS.docs.length;
+
+                const progressToast = showToast(`0/${total} ta natija o'chirilmoqda...`, "info", Infinity);
+                let count = 0;
+                for (const d of snapS.docs) {
+                    await deleteDoc(doc(db, "submissions", d.id));
+                    count++;
+                    progressToast.update(`${count}/${total} ta natija o'chirilmoqda...`);
+                }
+
+                // Clear from student profile in groups
+                try {
+                    const gRef = doc(db, "groups", assign.groupId);
+                    const gSnap = await getDoc(gRef);
+                    if (gSnap.exists()) {
+                        const gData = gSnap.data();
+                        let changed = false;
+                        (gData.students || []).forEach(s => {
+                            if (s.profileData) {
+                                tTitles.forEach(title => { if (s.profileData[title]) { delete s.profileData[title]; changed = true; } });
+                            }
+                            if (s.portrait) {
+                                const newPortrait = [];
+                                let skipMode = false;
+                                s.portrait.forEach(entry => {
+                                    if (entry.label === "--- SECTION ---" && tTitles.includes(entry.value)) {
+                                        skipMode = true;
+                                        changed = true;
+                                    } else if (entry.label === "--- SECTION ---") {
+                                        skipMode = false;
+                                    }
+                                    if (!skipMode) newPortrait.push(entry);
+                                });
+                                s.portrait = newPortrait;
+                            }
+                        });
+                        if (changed) await updateDoc(gRef, { students: gData.students });
+                    }
+                } catch (err) { console.error("Profile clear error:", err); }
+
+                progressToast.close();
+                showToast("Havola muvaffaqiyatli restart qilindi", "success");
+                clearCache(); renderTab();
+            });
+
+            area.querySelectorAll('.upgrade-a').forEach(b => b.onclick = async () => {
+                const aId = b.dataset.id;
+                const assign = assigns.find(a => a.id === aId);
+                if (!assign) return;
+
+                const test = tests.find(t => t.id === assign.testId);
+
+                try {
+                    // 1. Metadata yangilash
+                    if (test) {
+                        await updateDoc(doc(db, "assignments", aId), {
+                            testTitle: test.title,
+                            updatedAt: serverTimestamp()
+                        });
+                    }
+
+                    // 2. Guruhni qayta tekshirish (Keshni tozalab)
+                    clearCache();
+                    const freshGroups = await fetchData("groups");
+                    const freshG = freshGroups.find(gx => gx.id === assign.groupId);
+                    const sCount = freshG?.students?.length || 0;
+
+                    showToast(`Havola yangilandi! Hozirda guruhda ${sCount} ta talaba mavjud.`, "success");
+                    renderTab();
+                } catch (err) {
+                    showToast("Upgrade xatosi: " + err.message, "error");
                 }
             });
-            if (changed) await updateDoc(gRef, { students: gData.students });
-        }
-    } catch (err) { console.error("Profile clear error:", err); }
 
-    progressToast.close();
-    showToast("Havola muvaffaqiyatli restart qilindi", "success");
-    clearCache(); renderTab();
-});
+            area.querySelectorAll('.tog-a').forEach(b => b.onchange = async (e) => { await updateDoc(doc(db, "assignments", b.dataset.id), { active: e.target.checked }); showToast("Holat yangilandi", "success"); });
+            area.querySelectorAll('.del-a').forEach(b => b.onclick = async () => { if (confirm("O'chirilsinmi?")) { await deleteDoc(doc(db, "assignments", b.dataset.id)); clearCache(); renderTab(); } });
 
-area.querySelectorAll('.upgrade-a').forEach(b => b.onclick = async () => {
-    const aId = b.dataset.id;
-    const assign = assigns.find(a => a.id === aId);
-    if (!assign) return;
-
-    const test = tests.find(t => t.id === assign.testId);
-    
-    try {
-        // 1. Metadata yangilash
-        if (test) {
-            await updateDoc(doc(db, "assignments", aId), { 
-                testTitle: test.title,
-                updatedAt: serverTimestamp()
+            const updateBulkBtn = () => {
+                const checked = area.querySelectorAll('.sel-a:checked');
+                document.getElementById('btn-bulk-del').style.display = checked.length ? 'block' : 'none';
+            };
+            area.querySelectorAll('.sel-a').forEach(cb => cb.onchange = updateBulkBtn);
+            area.querySelectorAll('.select-all-test').forEach(cb => cb.onchange = (e) => {
+                const card = e.target.closest('.card');
+                card.querySelectorAll('.sel-a').forEach(el => el.checked = e.target.checked);
+                updateBulkBtn();
             });
-        }
-
-        // 2. Guruhni qayta tekshirish (Keshni tozalab)
-        clearCache();
-        const freshGroups = await fetchData("groups");
-        const freshG = freshGroups.find(gx => gx.id === assign.groupId);
-        const sCount = freshG?.students?.length || 0;
-
-        showToast(`Havola yangilandi! Hozirda guruhda ${sCount} ta talaba mavjud.`, "success");
-        renderTab();
-    } catch (err) {
-        showToast("Upgrade xatosi: " + err.message, "error");
-    }
-});
-
-area.querySelectorAll('.tog-a').forEach(b => b.onchange = async (e) => { await updateDoc(doc(db, "assignments", b.dataset.id), { active: e.target.checked }); showToast("Holat yangilandi", "success"); });
-area.querySelectorAll('.del-a').forEach(b => b.onclick = async () => { if (confirm("O'chirilsinmi?")) { await deleteDoc(doc(db, "assignments", b.dataset.id)); clearCache(); renderTab(); } });
-
-const updateBulkBtn = () => {
-    const checked = area.querySelectorAll('.sel-a:checked');
-    document.getElementById('btn-bulk-del').style.display = checked.length ? 'block' : 'none';
-};
-area.querySelectorAll('.sel-a').forEach(cb => cb.onchange = updateBulkBtn);
-area.querySelectorAll('.select-all-test').forEach(cb => cb.onchange = (e) => {
-    const card = e.target.closest('.card');
-    card.querySelectorAll('.sel-a').forEach(el => el.checked = e.target.checked);
-    updateBulkBtn();
-});
         };
 
-renderAssigns();
+        renderAssigns();
 
-document.getElementById('btn-create-links').onclick = async () => {
-    const tId = aTest.value;
-    const test = tests.find(t => t.id === tId);
-    const selectedGIds = Array.from(area.querySelectorAll('.g-check:checked')).map(cb => cb.value);
+        document.getElementById('btn-create-links').onclick = async () => {
+            const tId = aTest.value;
+            const test = tests.find(t => t.id === tId);
+            const selectedGIds = Array.from(area.querySelectorAll('.g-check:checked')).map(cb => cb.value);
 
-    if (!selectedGIds.length) return showToast("Guruhlarni tanlang", "warning");
+            if (!selectedGIds.length) return showToast("Guruhlarni tanlang", "warning");
 
-    const total = selectedGIds.length;
-    const progressToast = showToast(`0/${total} ta havola tayyorlanmoqda...`, "info", Infinity);
+            const total = selectedGIds.length;
+            const progressToast = showToast(`0/${total} ta havola tayyorlanmoqda...`, "info", Infinity);
 
-    let count = 0;
-    for (const gId of selectedGIds) {
-        const token = Math.random().toString(36).substring(2, 8).toUpperCase();
-        await addDoc(collection(db, "assignments"), {
-            testId: tId,
-            testTitle: test.title,
-            groupId: gId,
-            token,
-            active: true,
-            createdAt: serverTimestamp()
-        });
-        count++;
-        progressToast.update(`${count}/${total} ta havola tayyorlanmoqda...`);
+            let count = 0;
+            for (const gId of selectedGIds) {
+                const token = Math.random().toString(36).substring(2, 8).toUpperCase();
+                await addDoc(collection(db, "assignments"), {
+                    testId: tId,
+                    testTitle: test.title,
+                    groupId: gId,
+                    token,
+                    active: true,
+                    createdAt: serverTimestamp()
+                });
+                count++;
+                progressToast.update(`${count}/${total} ta havola tayyorlanmoqda...`);
+            }
+
+            progressToast.close();
+            showToast("Havolalar muvaffaqiyatli yaratildi", "success");
+            clearCache();
+            renderTab();
+        };
+
+        document.getElementById('btn-bulk-del').onclick = async () => {
+            if (!confirm("Tanlanganlarni o'chirasizmi?")) return;
+            const checked = Array.from(area.querySelectorAll('.sel-a:checked'));
+            const total = checked.length;
+            const progressToast = showToast(`0/${total} ta biriktirma o'chirilmoqda...`, "info", Infinity);
+            let count = 0;
+            for (const cb of checked) {
+                await deleteDoc(doc(db, "assignments", cb.dataset.id));
+                count++;
+                progressToast.update(`${count}/${total} ta biriktirma o'chirilmoqda...`);
+            }
+            progressToast.close();
+            showToast("Muvaffaqiyatli o'chirildi", "success");
+            clearCache(); renderTab();
+        };
+
+        if (window.lucide) window.lucide.createIcons();
     }
 
-    progressToast.close();
-    showToast("Havolalar muvaffaqiyatli yaratildi", "success");
-    clearCache();
-    renderTab();
-};
+    // --- RESULTS TAB ---
+    async function renderResultsTab(area) {
+        pageTitle.innerText = "Analitika";
+        // Fetch only tests and groups for filters
+        const [tests, groups] = await Promise.all([fetchData("tests"), fetchData("groups")]);
 
-document.getElementById('btn-bulk-del').onclick = async () => {
-    if (!confirm("Tanlanganlarni o'chirasizmi?")) return;
-    const checked = Array.from(area.querySelectorAll('.sel-a:checked'));
-    const total = checked.length;
-    const progressToast = showToast(`0/${total} ta biriktirma o'chirilmoqda...`, "info", Infinity);
-    let count = 0;
-    for (const cb of checked) {
-        await deleteDoc(doc(db, "assignments", cb.dataset.id));
-        count++;
-        progressToast.update(`${count}/${total} ta biriktirma o'chirilmoqda...`);
-    }
-    progressToast.close();
-    showToast("Muvaffaqiyatli o'chirildi", "success");
-    clearCache(); renderTab();
-};
-
-if (window.lucide) window.lucide.createIcons();
-    }
-
-// --- RESULTS TAB ---
-async function renderResultsTab(area) {
-    pageTitle.innerText = "Analitika";
-    // Fetch only tests and groups for filters
-    const [tests, groups] = await Promise.all([fetchData("tests"), fetchData("groups")]);
-
-    area.innerHTML = `
+        area.innerHTML = `
             <div class="card mb-4 animate-fade">
                 <div class="grid grid-5">
                     <div class="input-group"><label>Metodika</label><select id="f-test"><option value="all">Barchasi</option>${tests.map(t => `<option value="${t.id}">${t.title}</option>`).join('')}</select></div>
@@ -1688,51 +1708,51 @@ async function renderResultsTab(area) {
             </div>
         `;
 
-    const fFac = document.getElementById('f-fac');
-    const fDir = document.getElementById('f-dir');
+        const fFac = document.getElementById('f-fac');
+        const fDir = document.getElementById('f-dir');
 
-    const updateDirections = () => {
-        const fac = fFac.value;
-        let dirs = [];
-        if (fac === 'all') {
-            dirs = [...new Set(groups.map(g => g.direction).filter(d => d))];
-        } else {
-            dirs = [...new Set(groups.filter(g => (g.faculty || 'Akademiya') === fac).map(g => g.direction).filter(d => d))];
-        }
-        fDir.innerHTML = `<option value="all">Barchasi</option>` + dirs.map(d => `<option value="${d}">${d}</option>`).join('');
-    };
+        const updateDirections = () => {
+            const fac = fFac.value;
+            let dirs = [];
+            if (fac === 'all') {
+                dirs = [...new Set(groups.map(g => g.direction).filter(d => d))];
+            } else {
+                dirs = [...new Set(groups.filter(g => (g.faculty || 'Akademiya') === fac).map(g => g.direction).filter(d => d))];
+            }
+            fDir.innerHTML = `<option value="all">Barchasi</option>` + dirs.map(d => `<option value="${d}">${d}</option>`).join('');
+        };
 
-    fFac.onchange = updateDirections;
-    updateDirections();
+        fFac.onchange = updateDirections;
+        updateDirections();
 
-    if (window.lucide) window.lucide.createIcons();
+        if (window.lucide) window.lucide.createIcons();
 
-    const updateAnalytics = async () => {
-        const btn = document.getElementById('btn-update-analytics');
-        const contentArea = document.getElementById('analytics-content-area');
+        const updateAnalytics = async () => {
+            const btn = document.getElementById('btn-update-analytics');
+            const contentArea = document.getElementById('analytics-content-area');
 
-        btn.disabled = true;
-        btn.innerHTML = `<div class="loader-sm"></div> Yuklanmoqda...`;
-        contentArea.innerHTML = `<div class="flex-center py-5"><div class="loader"></div></div>`;
+            btn.disabled = true;
+            btn.innerHTML = `<div class="loader-sm"></div> Yuklanmoqda...`;
+            contentArea.innerHTML = `<div class="flex-center py-5"><div class="loader"></div></div>`;
 
-        try {
-            // Actual GET request happens ONLY here
-            const subs = await fetchData("submissions");
-            const tId = document.getElementById('f-test').value;
-            const fac = document.getElementById('f-fac').value;
-            const dir = document.getElementById('f-dir').value;
-            const crs = document.getElementById('f-course').value;
+            try {
+                // Actual GET request happens ONLY here
+                const subs = await fetchData("submissions");
+                const tId = document.getElementById('f-test').value;
+                const fac = document.getElementById('f-fac').value;
+                const dir = document.getElementById('f-dir').value;
+                const crs = document.getElementById('f-course').value;
 
-            let filteredGroups = groups || [];
-            if (fac !== 'all') filteredGroups = filteredGroups.filter(g => (g.faculty || 'Akademiya') === fac);
-            if (dir !== 'all') filteredGroups = filteredGroups.filter(g => g.direction === dir);
-            if (crs !== 'all') filteredGroups = filteredGroups.filter(g => String(g.course) === crs);
+                let filteredGroups = groups || [];
+                if (fac !== 'all') filteredGroups = filteredGroups.filter(g => (g.faculty || 'Akademiya') === fac);
+                if (dir !== 'all') filteredGroups = filteredGroups.filter(g => g.direction === dir);
+                if (crs !== 'all') filteredGroups = filteredGroups.filter(g => String(g.course) === crs);
 
-            const gIds = new Set(filteredGroups.map(g => g.id));
-            let filteredSubs = (subs || []).filter(s => gIds.has(s.groupId));
-            if (tId !== 'all') filteredSubs = filteredSubs.filter(s => s.testId === tId);
+                const gIds = new Set(filteredGroups.map(g => g.id));
+                let filteredSubs = (subs || []).filter(s => gIds.has(s.groupId));
+                if (tId !== 'all') filteredSubs = filteredSubs.filter(s => s.testId === tId);
 
-            contentArea.innerHTML = `
+                contentArea.innerHTML = `
                     <div class="grid grid-2 animate-fade">
                         <div class="card">
                             <div class="flex-between mb-4"><h3>Natijalar Taqsimoti</h3><div class="badge badge-info" id="stat-count">${filteredSubs.length} ta natija</div></div>
@@ -1747,90 +1767,90 @@ async function renderResultsTab(area) {
                     <div id="q-details-area" class="mt-4"></div>
                 `;
 
-            let labels = [], data = [], colors = ['#4318FF', '#05CD99', '#FFB547', '#FF5B5B', '#6AD2FF', '#918EF4'];
-            const selectedTest = tests.find(t => t.id === tId);
+                let labels = [], data = [], colors = ['#4318FF', '#05CD99', '#FFB547', '#FF5B5B', '#6AD2FF', '#918EF4'];
+                const selectedTest = tests.find(t => t.id === tId);
 
-            if (selectedTest && selectedTest.interpretations?.length) {
-                labels = selectedTest.interpretations.map(i => i.text);
-                data = new Array(labels.length).fill(0);
-                filteredSubs.forEach(s => {
-                    const sc = parseFloat(s.score || 0);
-                    const idx = selectedTest.interpretations.findIndex(i => sc >= i.min && sc <= i.max);
-                    if (idx !== -1) data[idx]++;
+                if (selectedTest && selectedTest.interpretations?.length) {
+                    labels = selectedTest.interpretations.map(i => i.text);
+                    data = new Array(labels.length).fill(0);
+                    filteredSubs.forEach(s => {
+                        const sc = parseFloat(s.score || 0);
+                        const idx = selectedTest.interpretations.findIndex(i => sc >= i.min && sc <= i.max);
+                        if (idx !== -1) data[idx]++;
+                    });
+                } else {
+                    let low = 0, med = 0, high = 0;
+                    filteredSubs.forEach(s => {
+                        const sc = parseFloat(s.score || 0);
+                        if (sc <= 10) low++; else if (sc <= 20) med++; else high++;
+                    });
+                    data = [low, med, high]; labels = ['Past', 'O\'rta', 'Yuqori']; colors = ['#05CD99', '#FFB547', '#FF5B5B'];
+                }
+
+                const ctx = document.getElementById('analyticsPieChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'pie',
+                    data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+                    options: { plugins: { legend: { display: false } } }
                 });
-            } else {
-                let low = 0, med = 0, high = 0;
-                filteredSubs.forEach(s => {
-                    const sc = parseFloat(s.score || 0);
-                    if (sc <= 10) low++; else if (sc <= 20) med++; else high++;
-                });
-                data = [low, med, high]; labels = ['Past', 'O\'rta', 'Yuqori']; colors = ['#05CD99', '#FFB547', '#FF5B5B'];
-            }
 
-            const ctx = document.getElementById('analyticsPieChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'pie',
-                data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
-                options: { plugins: { legend: { display: false } } }
-            });
-
-            document.getElementById('pie-legend').innerHTML = labels.map((l, i) => `
+                document.getElementById('pie-legend').innerHTML = labels.map((l, i) => `
                     <div class="flex-between mb-2">
                         <div class="flex-gap"><div style="width:12px; height:12px; background:${colors[i]}; border-radius:3px"></div><span>${l}</span></div>
                         <strong>${data[i]} ta (${filteredSubs.length ? Math.round(data[i] / filteredSubs.length * 100) : 0}%)</strong>
                     </div>`).join('');
 
-            document.getElementById('groups-body').innerHTML = filteredGroups.map(g => {
-                const gSubs = filteredSubs.filter(s => s.groupId === g.id);
-                const prc = g.students?.length ? Math.round(gSubs.length / g.students.length * 100) : 0;
-                return `<tr><td>${g.name}</td><td>${gSubs.length} / ${g.students?.length || 0}</td><td><div class="flex-gap">${prc}% <div class="progress-bar-container" style="flex:1"><div class="progress-bar-fill" style="width:${prc}%"></div></div></div></td></tr>`;
-            }).join('');
+                document.getElementById('groups-body').innerHTML = filteredGroups.map(g => {
+                    const gSubs = filteredSubs.filter(s => s.groupId === g.id);
+                    const prc = g.students?.length ? Math.round(gSubs.length / g.students.length * 100) : 0;
+                    return `<tr><td>${g.name}</td><td>${gSubs.length} / ${g.students?.length || 0}</td><td><div class="flex-gap">${prc}% <div class="progress-bar-container" style="flex:1"><div class="progress-bar-fill" style="width:${prc}%"></div></div></div></td></tr>`;
+                }).join('');
 
-            if (tId !== 'all' && selectedTest?.questions) {
-                const qDetails = document.getElementById('q-details-area');
-                qDetails.innerHTML = `<div class="card"><h3>Savollar tahlili</h3><div id="q-breakdown" class="mt-4"></div></div>`;
-                const qB = document.getElementById('q-breakdown');
-                selectedTest.questions.forEach((q, i) => {
-                    if (q.type === 'text' || !q.options) return;
-                    const qCounts = {};
-                    q.options.forEach(o => qCounts[o.text] = 0);
-                    filteredSubs.forEach(s => { if (s.answers && s.answers[i]) qCounts[s.answers[i]] = (qCounts[s.answers[i]] || 0) + 1; });
-                    qB.innerHTML += `<div class="mb-4 p-3 border-bottom"><strong>${i + 1}. ${q.text}</strong><div class="grid grid-4 mt-2">${q.options.map(o => `<div class="small">${o.text}: <b>${qCounts[o.text]} ta</b></div>`).join('')}</div></div>`;
-                });
+                if (tId !== 'all' && selectedTest?.questions) {
+                    const qDetails = document.getElementById('q-details-area');
+                    qDetails.innerHTML = `<div class="card"><h3>Savollar tahlili</h3><div id="q-breakdown" class="mt-4"></div></div>`;
+                    const qB = document.getElementById('q-breakdown');
+                    selectedTest.questions.forEach((q, i) => {
+                        if (q.type === 'text' || !q.options) return;
+                        const qCounts = {};
+                        q.options.forEach(o => qCounts[o.text] = 0);
+                        filteredSubs.forEach(s => { if (s.answers && s.answers[i]) qCounts[s.answers[i]] = (qCounts[s.answers[i]] || 0) + 1; });
+                        qB.innerHTML += `<div class="mb-4 p-3 border-bottom"><strong>${i + 1}. ${q.text}</strong><div class="grid grid-4 mt-2">${q.options.map(o => `<div class="small">${o.text}: <b>${qCounts[o.text]} ta</b></div>`).join('')}</div></div>`;
+                    });
+                }
+                if (window.lucide) window.lucide.createIcons();
+            } catch (err) {
+                contentArea.innerHTML = `<div class="card text-danger p-5 text-center">Xatolik: ${err.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="refresh-cw"></i> Ko'rsatish`;
+                if (window.lucide) window.lucide.createIcons();
             }
-            if (window.lucide) window.lucide.createIcons();
-        } catch (err) {
-            contentArea.innerHTML = `<div class="card text-danger p-5 text-center">Xatolik: ${err.message}</div>`;
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = `<i data-lucide="refresh-cw"></i> Ko'rsatish`;
-            if (window.lucide) window.lucide.createIcons();
-        }
-    };
+        };
 
-    document.getElementById('btn-update-analytics').onclick = updateAnalytics;
-}
+        document.getElementById('btn-update-analytics').onclick = updateAnalytics;
+    }
 
-async function openStudentProfile(name, groupId) {
-    contentArea.innerHTML = `<div class="flex-center" style="height:60vh"><div class="loader"></div></div>`;
-    pageTitle.innerText = "Talaba Profili";
+    async function openStudentProfile(name, groupId) {
+        contentArea.innerHTML = `<div class="flex-center" style="height:60vh"><div class="loader"></div></div>`;
+        pageTitle.innerText = "Talaba Profili";
 
-    try {
-        const [gs, ts] = await Promise.all([fetchData("groups"), fetchData("tests")]);
-        const g = gs.find(gr => gr.id === groupId);
+        try {
+            const [gs, ts] = await Promise.all([fetchData("groups"), fetchData("tests")]);
+            const g = gs.find(gr => gr.id === groupId);
 
-        let subs = [];
-        if (!isMock) {
-            // Fetch by groupId only to avoid composite index requirement
-            const q = query(collection(db, "submissions"), where("groupId", "==", groupId));
-            const snap = await getDocs(q);
-            subs = snap.docs
-                .map(d => ({ id: d.id, ...d.data() }))
-                .filter(s => s.studentName === name)
-                .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-        }
+            let subs = [];
+            if (!isMock) {
+                // Fetch by groupId only to avoid composite index requirement
+                const q = query(collection(db, "submissions"), where("groupId", "==", groupId));
+                const snap = await getDocs(q);
+                subs = snap.docs
+                    .map(d => ({ id: d.id, ...d.data() }))
+                    .filter(s => s.studentName === name)
+                    .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+            }
 
-        contentArea.innerHTML = `
+            contentArea.innerHTML = `
             <div class="profile-card animate-fade">
                 <div class="profile-banner" style="background: linear-gradient(135deg, var(--primary), var(--secondary)); height: 120px; border-radius: 30px 30px 0 0"></div>
                 <div class="profile-content" style="margin-top: -60px; padding: 0 30px 30px">
@@ -1860,62 +1880,62 @@ async function openStudentProfile(name, groupId) {
 
                         <div id="portrait-grid">
                             ${(() => {
-                    const studentObj = g.students.find(s => s.name === name);
-                    const profileSub = subs.find(s => s.isProfileData);
-                    // IMPORTANT: Prioritize the accumulated portrait array in the student object
-                    // as it contains merged data from all parts of a test sequence.
-                    const rawPortrait = studentObj?.portrait || studentObj?.profileData || profileSub?.portraitData || {};
-                    // Convert to array if it's an object
-                    const portraitData = (Array.isArray(rawPortrait) ? rawPortrait : Object.entries(rawPortrait).map(([label, value]) => ({ label, value })))
-                        .filter(d => d.value && d.value !== "---");
+                        const studentObj = g.students.find(s => s.name === name);
+                        const profileSub = subs.find(s => s.isProfileData);
+                        // IMPORTANT: Prioritize the accumulated portrait array in the student object
+                        // as it contains merged data from all parts of a test sequence.
+                        const rawPortrait = studentObj?.portrait || studentObj?.profileData || profileSub?.portraitData || {};
+                        // Convert to array if it's an object
+                        const portraitData = (Array.isArray(rawPortrait) ? rawPortrait : Object.entries(rawPortrait).map(([label, value]) => ({ label, value })))
+                            .filter(d => d.value && d.value !== "---");
 
-                    // Master template for the requested sequence
-                    const masterTemplate = [
-                        {
-                            category: "SHAXSIY MA'LUMOTLAR", fields: [
-                                "F.I.Sh", "Fakultet, guruh, kurs", "Tuģilgan yili, oyi, kuni", "Doimiy yashash manzili",
-                                "Oilaviy ahvoli", "Otasi", "Onasi", "Yashash sharoiti", "Salomatligi to'g'risida ma'mulotlar",
-                                "Fanlarni o'zlashtirishi", "Xarakterining asosiy xususiyatlari", "Oilaviy munosabatlar xususiyatlari",
-                                "Izoh", "Kursdoshlari bilan o'zaro munosabati", "Profilaktika va korreksiya uchun tavsiyalar"
-                            ]
-                        },
-                        {
-                            category: "IJTIMOIY MOSLASHUV", fields: [
-                                "Tengdoshlari bilan o'zaro munosabati", "O'qituvchilar bilan o'zaro munosabati", "Muloqotchanligi"
-                            ]
-                        },
-                        {
-                            category: "INDIVIDUAL-PSIXOLOGIK XUSUSIYATLAR", fields: [
-                                "Ajralib turadigan charakter xususiyatlari", "O'ziga beradigan bahosi", "Xavotirlanuvchanligi",
-                                "Agressivlik darajasi", "Irodaviy xususiyatlari", "Diqqati"
-                            ]
-                        },
-                        {
-                            category: "INTELLEKTUAL RIVOJLANISH", fields: [
-                                "Tafakkur xususiyatlari", "Intellektual salohiyati"
-                            ]
-                        },
-                        {
-                            category: "QIZIQISHLARI", fields: [
-                                "Hobbisi", "Sport turi", "San'at turi", "Erishgan yutuqlari", "Bo'sh vaqtdan foydalanish"
-                            ]
-                        }
-                    ];
-
-                    const usedIndices = new Set();
-                    const sectionsHtml = masterTemplate.map(section => {
-                        const sectionItems = [];
-                        section.fields.forEach(fLabel => {
-                            const foundIdx = portraitData.findIndex((d, idx) => !usedIndices.has(idx) && d.label.toLowerCase().includes(fLabel.toLowerCase()));
-                            if (foundIdx > -1) {
-                                sectionItems.push(portraitData[foundIdx]);
-                                usedIndices.add(foundIdx);
+                        // Master template for the requested sequence
+                        const masterTemplate = [
+                            {
+                                category: "SHAXSIY MA'LUMOTLAR", fields: [
+                                    "F.I.Sh", "Fakultet, guruh, kurs", "Tuģilgan yili, oyi, kuni", "Doimiy yashash manzili",
+                                    "Oilaviy ahvoli", "Otasi", "Onasi", "Yashash sharoiti", "Salomatligi to'g'risida ma'mulotlar",
+                                    "Fanlarni o'zlashtirishi", "Xarakterining asosiy xususiyatlari", "Oilaviy munosabatlar xususiyatlari",
+                                    "Izoh", "Kursdoshlari bilan o'zaro munosabati", "Profilaktika va korreksiya uchun tavsiyalar"
+                                ]
+                            },
+                            {
+                                category: "IJTIMOIY MOSLASHUV", fields: [
+                                    "Tengdoshlari bilan o'zaro munosabati", "O'qituvchilar bilan o'zaro munosabati", "Muloqotchanligi"
+                                ]
+                            },
+                            {
+                                category: "INDIVIDUAL-PSIXOLOGIK XUSUSIYATLAR", fields: [
+                                    "Ajralib turadigan charakter xususiyatlari", "O'ziga beradigan bahosi", "Xavotirlanuvchanligi",
+                                    "Agressivlik darajasi", "Irodaviy xususiyatlari", "Diqqati"
+                                ]
+                            },
+                            {
+                                category: "INTELLEKTUAL RIVOJLANISH", fields: [
+                                    "Tafakkur xususiyatlari", "Intellektual salohiyati"
+                                ]
+                            },
+                            {
+                                category: "QIZIQISHLARI", fields: [
+                                    "Hobbisi", "Sport turi", "San'at turi", "Erishgan yutuqlari", "Bo'sh vaqtdan foydalanish"
+                                ]
                             }
-                        });
+                        ];
 
-                        if (sectionItems.length === 0) return "";
+                        const usedIndices = new Set();
+                        const sectionsHtml = masterTemplate.map(section => {
+                            const sectionItems = [];
+                            section.fields.forEach(fLabel => {
+                                const foundIdx = portraitData.findIndex((d, idx) => !usedIndices.has(idx) && d.label.toLowerCase().includes(fLabel.toLowerCase()));
+                                if (foundIdx > -1) {
+                                    sectionItems.push(portraitData[foundIdx]);
+                                    usedIndices.add(foundIdx);
+                                }
+                            });
 
-                        return `
+                            if (sectionItems.length === 0) return "";
+
+                            return `
                                         <div class="mt-4 mb-3">
                                             <h5 style="color:var(--text-muted); font-size:0.7rem; font-weight:800; letter-spacing:2px; text-transform:uppercase; border-left:3px solid var(--primary); padding-left:10px">${section.category}</h5>
                                         </div>
@@ -1934,10 +1954,10 @@ async function openStudentProfile(name, groupId) {
                                             `).join('')}
                                         </div>
                                     `;
-                    }).join('');
+                        }).join('');
 
-                    const remainingItems = portraitData.filter((item, idx) => !usedIndices.has(idx) && item.label !== "--- SECTION ---");
-                    const customHtml = remainingItems.length > 0 ? `
+                        const remainingItems = portraitData.filter((item, idx) => !usedIndices.has(idx) && item.label !== "--- SECTION ---");
+                        const customHtml = remainingItems.length > 0 ? `
                                     <div class="mt-4 pt-3 border-top" id="custom-fields-area">
                                         <h5 style="color:var(--text-muted); font-size:0.7rem; font-weight:800; letter-spacing:2px; text-transform:uppercase; margin-bottom:15px">QO'SHIMCHA MA'LUMOTLAR</h5>
                                         <div class="grid grid-2" id="custom-portrait-grid" style="gap:20px">
@@ -1956,8 +1976,8 @@ async function openStudentProfile(name, groupId) {
                                         </div>
                                     </div>` : "";
 
-                    return sectionsHtml + customHtml;
-                })()}
+                        return sectionsHtml + customHtml;
+                    })()}
                         </div>
                         <div id="portrait-actions" style="display:none" class="mt-4 flex-center">
                             <button class="btn btn-sm btn-outline" id="btn-add-p-field">+ Yangi ixtiyoriy maydon</button>
@@ -1988,8 +2008,8 @@ async function openStudentProfile(name, groupId) {
                         <div class="flex-between w-100 mb-4"><h3>Topshirilgan Testlar</h3></div>
                         <div class="w-100 grid grid-2" style="gap:20px;">
                             ${subs.length ? subs.map(s => {
-                    const scoreColor = s.score > 20 ? 'badge-danger' : (s.score > 10 ? 'badge-warning' : 'badge-success');
-                    return `
+                        const scoreColor = s.score > 20 ? 'badge-danger' : (s.score > 10 ? 'badge-warning' : 'badge-success');
+                        return `
                                     <div class="v-sub-detail hover-card" data-id="${s.id}" style="cursor:pointer; border-radius:16px; border: 1px solid rgba(0,0,0,0.05); padding: 20px; background: rgba(0,0,0,0.01);">
                                         <div class="flex-between mb-2">
                                             <p style="font-weight:800; font-size:1.1rem">${s.testTitle}</p>
@@ -1998,7 +2018,7 @@ async function openStudentProfile(name, groupId) {
                                         <p class="text-muted small mb-3"><i data-lucide="calendar" style="width:12px; margin-right:4px"></i> ${new Date(s.timestamp?.seconds * 1000).toLocaleDateString()}</p>
                                         ${s.conclusion ? `<div style="background: rgba(67, 24, 255, 0.05); padding: 12px; border-radius: 12px; border-left: 3px solid var(--primary); font-weight:600; font-size:0.9rem; color:var(--text); margin-top:10px;">${s.conclusion}</div>` : ''}
                                     </div>`;
-                }).join('') : '<p class="text-muted">Hali test topshirilmagan</p>'}
+                    }).join('') : '<p class="text-muted">Hali test topshirilmagan</p>'}
                         </div>
                     </div>
                 </div>
@@ -2007,96 +2027,96 @@ async function openStudentProfile(name, groupId) {
                 <button class="btn btn-outline btn-round" id="btn-back-prof"><i data-lucide="arrow-left"></i> Guruhga qaytish</button>
             </div>`;
 
-        document.getElementById('btn-back-prof').onclick = () => { currentSubView = 'students_list'; renderTab(); };
+            document.getElementById('btn-back-prof').onclick = () => { currentSubView = 'students_list'; renderTab(); };
 
-        if (window.Chart && subs.length) {
-            const ctxT = document.getElementById('studentTrendChart').getContext('2d');
-            new Chart(ctxT, {
-                type: 'line',
-                data: {
-                    labels: subs.map(s => new Date(s.timestamp?.seconds * 1000).toLocaleDateString()).reverse(),
-                    datasets: [{
-                        label: 'Ball',
-                        data: subs.map(s => s.score).reverse(),
-                        borderColor: '#4318FF',
-                        backgroundColor: 'rgba(67, 24, 255, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#4318FF'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, max: 30 } }
-                }
-            });
-        }
+            if (window.Chart && subs.length) {
+                const ctxT = document.getElementById('studentTrendChart').getContext('2d');
+                new Chart(ctxT, {
+                    type: 'line',
+                    data: {
+                        labels: subs.map(s => new Date(s.timestamp?.seconds * 1000).toLocaleDateString()).reverse(),
+                        datasets: [{
+                            label: 'Ball',
+                            data: subs.map(s => s.score).reverse(),
+                            borderColor: '#4318FF',
+                            backgroundColor: 'rgba(67, 24, 255, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#4318FF'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, max: 30 } }
+                    }
+                });
+            }
 
-        contentArea.querySelectorAll('.v-sub-detail').forEach(item => {
-            item.onclick = () => {
-                const sub = subs.find(s => s.id === item.dataset.id);
-                const test = ts.find(t => t.id === sub.testId);
-                if (!test) return showToast("Test ma'lumotlari topilmadi", "error");
-                const detailHtml = `
+            contentArea.querySelectorAll('.v-sub-detail').forEach(item => {
+                item.onclick = () => {
+                    const sub = subs.find(s => s.id === item.dataset.id);
+                    const test = ts.find(t => t.id === sub.testId);
+                    if (!test) return showToast("Test ma'lumotlari topilmadi", "error");
+                    const detailHtml = `
                     <div class="detail-list" style="max-height: 500px; overflow-y: auto; padding: 10px">
                         ${sub.portraitData ?
-                        (Array.isArray(sub.portraitData) ?
-                            sub.portraitData.map((item, i) => `
+                            (Array.isArray(sub.portraitData) ?
+                                sub.portraitData.map((item, i) => `
                                     <div class="mb-3 p-3" style="background:rgba(67, 24, 255, 0.03); border-radius:15px; text-align:left">
                                         <p class="small text-primary font-weight-800 mb-1">${item.label}</p>
                                         <p style="font-weight:700; font-size:1rem; line-height:1.3; color:var(--text)">${item.value || '---'}</p>
                                     </div>
                                 `).join('')
-                            :
-                            Object.entries(sub.portraitData).map(([q, a], i) => `
+                                :
+                                Object.entries(sub.portraitData).map(([q, a], i) => `
                                     <div class="mb-3 p-3" style="background:rgba(67, 24, 255, 0.03); border-radius:15px; text-align:left">
                                         <p class="small text-primary font-weight-800 mb-1">${q}</p>
                                         <p style="font-weight:700; font-size:1rem; line-height:1.3; color:var(--text)">${a}</p>
                                     </div>
                                 `).join('')
-                        )
-                        :
-                        test.questions.map((q, i) => `
+                            )
+                            :
+                            test.questions.map((q, i) => `
                                 <div class="mb-3 p-3" style="background:rgba(67, 24, 255, 0.03); border-radius:15px; text-align:left">
                                     <p class="small text-muted font-weight-800 mb-1">SAVOL ${i + 1}</p>
                                     <p style="font-weight:700; font-size:1rem; line-height:1.3">${q.text}</p>
                                     <p class="mt-2 text-primary" style="font-weight:600">Javob: ${sub.answers[i] || '---'}</p>
                                 </div>
                             `).join('')
-                    }
+                        }
                     </div>`;
-                showModal(`${sub.testTitle}`, detailHtml, () => true);
-            };
-        });
+                    showModal(`${sub.testTitle}`, detailHtml, () => true);
+                };
+            });
 
-        // --- Portrait Editing Logic ---
-        const pCard = document.getElementById('portrait-card');
-        if (pCard) {
-            const btnEdit = document.getElementById('btn-edit-portrait');
-            const btnSave = document.getElementById('btn-save-portrait');
-            const pActions = document.getElementById('portrait-actions');
-            const pGrid = document.getElementById('portrait-grid');
+            // --- Portrait Editing Logic ---
+            const pCard = document.getElementById('portrait-card');
+            if (pCard) {
+                const btnEdit = document.getElementById('btn-edit-portrait');
+                const btnSave = document.getElementById('btn-save-portrait');
+                const pActions = document.getElementById('portrait-actions');
+                const pGrid = document.getElementById('portrait-grid');
 
-            btnEdit.onclick = () => {
-                const isEditing = btnEdit.innerText.includes("Tahrirlash");
-                btnEdit.innerHTML = isEditing ? '<i data-lucide="x-circle"></i> Bekor qilish' : '<i data-lucide="edit"></i> Tahrirlash';
-                btnSave.style.display = isEditing ? 'block' : 'none';
-                pActions.style.display = isEditing ? 'flex' : 'none';
+                btnEdit.onclick = () => {
+                    const isEditing = btnEdit.innerText.includes("Tahrirlash");
+                    btnEdit.innerHTML = isEditing ? '<i data-lucide="x-circle"></i> Bekor qilish' : '<i data-lucide="edit"></i> Tahrirlash';
+                    btnSave.style.display = isEditing ? 'block' : 'none';
+                    pActions.style.display = isEditing ? 'flex' : 'none';
 
-                pCard.querySelectorAll('.p-label-view, .p-value-view').forEach(el => el.style.display = isEditing ? 'none' : 'block');
-                pCard.querySelectorAll('.p-label-edit, .p-value-edit, .p-del-btn').forEach(el => el.style.display = isEditing ? 'block' : 'none');
-                if (window.lucide) window.lucide.createIcons();
-            };
+                    pCard.querySelectorAll('.p-label-view, .p-value-view').forEach(el => el.style.display = isEditing ? 'none' : 'block');
+                    pCard.querySelectorAll('.p-label-edit, .p-value-edit, .p-del-btn').forEach(el => el.style.display = isEditing ? 'block' : 'none');
+                    if (window.lucide) window.lucide.createIcons();
+                };
 
-            document.getElementById('btn-add-p-field').onclick = () => {
-                const customGrid = document.getElementById('custom-portrait-grid');
-                const div = document.createElement('div');
-                div.className = 'profile-field-box animate-fade';
-                div.style = 'background: rgba(5, 205, 153, 0.05); padding: 12px 18px; border-radius: 16px; border: 1px solid var(--success); position: relative; overflow: hidden;';
-                div.innerHTML = `
+                document.getElementById('btn-add-p-field').onclick = () => {
+                    const customGrid = document.getElementById('custom-portrait-grid');
+                    const div = document.createElement('div');
+                    div.className = 'profile-field-box animate-fade';
+                    div.style = 'background: rgba(5, 205, 153, 0.05); padding: 12px 18px; border-radius: 16px; border: 1px solid var(--success); position: relative; overflow: hidden;';
+                    div.innerHTML = `
                     <div style="position:absolute; top:0; left:0; width:3px; height:100%; background:var(--success)"></div>
                     <div class="flex-between mb-1">
                         <input type="text" class="p-label-edit" value="" placeholder="YANGI MAYDON" style="font-size:0.7rem; font-weight:800; text-transform:uppercase; border:none; background:transparent; color:var(--success); width:100%">
@@ -2104,59 +2124,59 @@ async function openStudentProfile(name, groupId) {
                     </div>
                     <textarea class="p-value-edit cozy-input" placeholder="Javobni kiriting..." style="font-weight:700; font-size:0.95rem; min-height:35px; padding:6px; border-radius:8px"></textarea>
                 `;
-                customGrid.appendChild(div);
-                div.querySelector('.p-del-btn').onclick = () => div.remove();
-            };
+                    customGrid.appendChild(div);
+                    div.querySelector('.p-del-btn').onclick = () => div.remove();
+                };
 
-            pCard.querySelectorAll('.p-del-btn').forEach(btn => btn.onclick = () => btn.closest('.profile-field-box').remove());
+                pCard.querySelectorAll('.p-del-btn').forEach(btn => btn.onclick = () => btn.closest('.profile-field-box').remove());
 
-            btnSave.onclick = async () => {
-                btnSave.disabled = true;
-                const oldText = btnSave.innerHTML;
-                btnSave.innerText = "Saqlanmoqda...";
+                btnSave.onclick = async () => {
+                    btnSave.disabled = true;
+                    const oldText = btnSave.innerHTML;
+                    btnSave.innerText = "Saqlanmoqda...";
 
-                const newData = Array.from(pGrid.querySelectorAll('.profile-field-box')).map(box => ({
-                    label: box.querySelector('.p-label-edit').value,
-                    value: box.querySelector('.p-value-edit').value
-                }));
+                    const newData = Array.from(pGrid.querySelectorAll('.profile-field-box')).map(box => ({
+                        label: box.querySelector('.p-label-edit').value,
+                        value: box.querySelector('.p-value-edit').value
+                    }));
 
-                try {
-                    const studentIdx = g.students.findIndex(s => s.name === name);
-                    if (studentIdx > -1) {
-                        g.students[studentIdx].portrait = newData;
-                        await updateDoc(doc(db, "groups", g.id), { students: g.students });
+                    try {
+                        const studentIdx = g.students.findIndex(s => s.name === name);
+                        if (studentIdx > -1) {
+                            g.students[studentIdx].portrait = newData;
+                            await updateDoc(doc(db, "groups", g.id), { students: g.students });
 
-                        // Also update the latest profile submission if it exists
-                        const profileSub = subs.find(s => s.isProfileData);
-                        if (profileSub) {
-                            await updateDoc(doc(db, "assignments", profileSub.id), { portraitData: newData });
+                            // Also update the latest profile submission if it exists
+                            const profileSub = subs.find(s => s.isProfileData);
+                            if (profileSub) {
+                                await updateDoc(doc(db, "assignments", profileSub.id), { portraitData: newData });
+                            }
+
+                            showToast("Portret saqlandi", "success");
+                            renderTab(); // Refresh to show new data
                         }
-
-                        showToast("Portret saqlandi", "success");
-                        renderTab(); // Refresh to show new data
+                    } catch (err) {
+                        showToast("Saqlashda xato: " + err.message, "error");
+                    } finally {
+                        btnSave.disabled = false;
+                        btnSave.innerHTML = oldText;
                     }
-                } catch (err) {
-                    showToast("Saqlashda xato: " + err.message, "error");
-                } finally {
-                    btnSave.disabled = false;
-                    btnSave.innerHTML = oldText;
-                }
-            };
-        }
+                };
+            }
 
-        if (window.lucide) window.lucide.createIcons();
-    } catch (error) {
-        console.error("Profile error:", error);
-        contentArea.innerHTML = `
+            if (window.lucide) window.lucide.createIcons();
+        } catch (error) {
+            console.error("Profile error:", error);
+            contentArea.innerHTML = `
                 <div class="card text-center p-5 animate-fade">
                     <div class="icon-circle danger mx-auto mb-3"><i data-lucide="alert-circle"></i></div>
                     <h2 class="text-danger">Xatolik yuz berdi</h2>
                     <p class="text-muted mb-4">${error.message}</p>
                     <button class="btn btn-primary" onclick="location.reload()">Sahifani yangilash</button>
                 </div>`;
-        if (window.lucide) window.lucide.createIcons();
+            if (window.lucide) window.lucide.createIcons();
+        }
     }
-}
 
-renderTab();
+    renderTab();
 }
