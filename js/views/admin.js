@@ -4,6 +4,7 @@ import {
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { showToast, logout, getCached, setCache, clearCache, showModal, toggleTheme, initTheme } from '../utils.js';
+import { inferGender } from '../utils/gender.js';
 
 let activeTab = 'dashboard';
 let currentSubView = 'main';
@@ -854,7 +855,7 @@ export async function renderAdmin(container) {
                                     students: []
                                 };
                             }
-                            groupsMap[uniqueKey].students.push({ name: item.student, completedTests: [] });
+                            groupsMap[uniqueKey].students.push({ name: item.student, completedTests: [], gender: inferGender(item.student) });
                         });
 
                         const groupKeys = Object.keys(groupsMap);
@@ -1039,7 +1040,7 @@ export async function renderAdmin(container) {
                             <div class="flex-between">
                                 <div class="flex-gap v-prof" data-name="${s.name}" data-gid="${g.id}" style="cursor:pointer; overflow:hidden; flex: 1;">
                                     <div class="icon-circle primary" style="width:40px; height:40px; flex-shrink: 0;"><i data-lucide="user"></i></div>
-                                    <div style="overflow:hidden; flex: 1;"><h3 style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden; font-size:0.95rem; font-weight:700" title="${s.name}">${s.name}</h3><p class="text-muted small">Talaba</p></div>
+                                    <div style="overflow:hidden; flex: 1;"><h3 style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden; font-size:0.95rem; font-weight:700" title="${s.name}">${s.name}</h3><span class="badge ${(s.gender || inferGender(s.name)) === 'girl' ? 'badge-girl' : 'badge-boy'}" style="margin-left:8px;">${(s.gender || inferGender(s.name)) === 'girl' ? 'Qiz bola' : 'O\'g\'il bola'}</span><p class="text-muted small">Talaba</p></div>
                                 </div>
                                 <button class="btn-icon text-danger del-student" data-idx="${idx}" style="flex-shrink: 0;"><i data-lucide="trash-2" style="width:18px"></i></button>
                             </div>
@@ -1071,7 +1072,7 @@ export async function renderAdmin(container) {
                     const val = m.querySelector('#n-s-bulk').value;
                     if (val) {
                         const newNames = val.split('\n').map(n => n.trim()).filter(n => n);
-                        const studentsToAdd = newNames.map(n => ({ name: n, completedTests: [] }));
+                        const studentsToAdd = newNames.map(n => ({ name: n, completedTests: [], gender: inferGender(n) }));
                         await updateDoc(doc(db, "groups", g.id), { students: [...(g.students || []), ...studentsToAdd] });
                         clearCache(); renderTab();
                     }
@@ -1097,19 +1098,22 @@ export async function renderAdmin(container) {
                 ${tutors.map(t => {
             const tGs = gs.filter(g => g.tutor === t);
             return `
-                    <div class="card animate-fade" style="padding: 1.5rem;">
+                    <div class="card animate-fade" style="padding: 1.5rem; cursor: pointer;" onclick="const el = this.querySelector('.t-g-list'); el.style.display = el.style.display === 'none' ? 'flex' : 'none';">
                         <div class="flex-between">
                             <div class="flex-gap">
                                 <div class="icon-circle secondary" style="width:50px; height:50px"><i data-lucide="shield-check"></i></div>
                                 <div>
                                     <h3 style="font-weight:800">${t}</h3>
-                                    <p class="text-muted small">${tGs.length} ta guruh</p>
+                                    <p class="text-muted small" style="margin:0">${tGs.length} ta guruh (Ko'rish uchun bosing)</p>
                                 </div>
                             </div>
                             <div class="flex-gap">
-                                <button class="btn-icon text-primary edit-tutor" data-name="${t}"><i data-lucide="edit-3" style="width:18px"></i></button>
-                                <button class="btn-icon text-danger del-tutor" data-name="${t}"><i data-lucide="trash-2" style="width:18px"></i></button>
+                                <button class="btn-icon text-primary edit-tutor" data-name="${t}" onclick="event.stopPropagation()"><i data-lucide="edit-3" style="width:18px"></i></button>
+                                <button class="btn-icon text-danger del-tutor" data-name="${t}" onclick="event.stopPropagation()"><i data-lucide="trash-2" style="width:18px"></i></button>
                             </div>
+                        </div>
+                        <div class="t-g-list mt-3 pt-3 border-top" style="display: none; flex-wrap: wrap; gap: 6px;">
+                            ${tGs.length > 0 ? tGs.map(g => `<span class="badge badge-info" style="font-size:0.75rem">${g.name}</span>`).join('') : '<span class="text-muted small">Guruhlar biriktirilmagan</span>'}
                         </div>
                     </div>`;
         }).join('')}
@@ -1691,11 +1695,12 @@ ${groupsContent}
 
         area.innerHTML = `
             <div class="card mb-4 animate-fade">
-                <div class="grid grid-5">
+                <div class="grid grid-6">
                     <div class="input-group"><label>Metodika</label><select id="f-test"><option value="all">Barchasi</option>${tests.map(t => `<option value="${t.id}">${t.title}</option>`).join('')}</select></div>
                     <div class="input-group"><label>Fakultet</label><select id="f-fac"><option value="all">Barchasi</option>${[...new Set(groups.map(g => g.faculty || 'Akademiya'))].map(f => `<option value="${f}">${f}</option>`).join('')}</select></div>
                     <div class="input-group"><label>Yo'nalish</label><select id="f-dir"><option value="all">Barchasi</option></select></div>
                     <div class="input-group"><label>Kurs</label><select id="f-course"><option value="all">Barchasi</option><option value="1">1-kurs</option><option value="2">2-kurs</option><option value="3">3-kurs</option><option value="4">4-kurs</option></select></div>
+                    <div class="input-group"><label>Jins</label><select id="f-gender"><option value="all">Barchasi</option><option value="boy">O'g'il bola</option><option value="girl">Qiz bola</option></select></div>
                     <div class="flex-gap" style="align-items: flex-end"><button id="btn-update-analytics" class="btn btn-primary w-100" style="padding: 13px"><i data-lucide="refresh-cw"></i> Ko'rsatish</button></div>
                 </div>
             </div>
@@ -1742,28 +1747,75 @@ ${groupsContent}
                 const fac = document.getElementById('f-fac').value;
                 const dir = document.getElementById('f-dir').value;
                 const crs = document.getElementById('f-course').value;
+                const gender = document.getElementById('f-gender').value;
 
                 let filteredGroups = groups || [];
                 if (fac !== 'all') filteredGroups = filteredGroups.filter(g => (g.faculty || 'Akademiya') === fac);
                 if (dir !== 'all') filteredGroups = filteredGroups.filter(g => g.direction === dir);
                 if (crs !== 'all') filteredGroups = filteredGroups.filter(g => String(g.course) === crs);
 
+                // Filter students by gender in filteredGroups to calculate total targeted students correctly
+                if (gender !== 'all') {
+                    filteredGroups = filteredGroups.map(g => ({
+                        ...g,
+                        students: (g.students || []).filter(s => {
+                            const sGender = s.gender || inferGender(s.name);
+                            return sGender === gender;
+                        })
+                    })).filter(g => g.students.length > 0);
+                }
+
                 const gIds = new Set(filteredGroups.map(g => g.id));
                 let filteredSubs = (subs || []).filter(s => gIds.has(s.groupId));
                 if (tId !== 'all') filteredSubs = filteredSubs.filter(s => s.testId === tId);
+                
+                if (gender !== 'all') {
+                    filteredSubs = filteredSubs.filter(s => {
+                        const subGroup = filteredGroups.find(g => g.id === s.groupId);
+                        if (!subGroup) return false;
+                        return subGroup.students.some(st => st.name === s.studentName);
+                    });
+                }
+
+                // Calculate summary indicators
+                const totalTargetedStudents = filteredGroups.reduce((acc, g) => acc + (g.students?.length || 0), 0);
+                const uniqueStudentsSubmitted = new Set(filteredSubs.map(s => `${s.groupId}_${s.studentName}`)).size;
+                const participationRate = totalTargetedStudents ? Math.round((uniqueStudentsSubmitted / totalTargetedStudents) * 100) : 0;
 
                 contentArea.innerHTML = `
-                    <div class="grid grid-2 animate-fade">
+                    <div class="grid grid-3 mb-4 animate-fade">
+                        <div class="card stat-card" style="padding: 1.5rem">
+                            <div class="icon-circle primary" style="width:45px; height:45px"><i data-lucide="users"></i></div>
+                            <div><p class="text-muted small uppercase font-weight-800">Jami Talabalar</p><h3>${totalTargetedStudents}</h3></div>
+                        </div>
+                        <div class="card stat-card" style="padding: 1.5rem">
+                            <div class="icon-circle success" style="width:45px; height:45px"><i data-lucide="check-circle"></i></div>
+                            <div><p class="text-muted small uppercase font-weight-800">Topshirganlar</p><h3>${uniqueStudentsSubmitted}</h3></div>
+                        </div>
+                        <div class="card stat-card" style="padding: 1.5rem">
+                            <div class="icon-circle warning" style="width:45px; height:45px"><i data-lucide="activity"></i></div>
+                            <div><p class="text-muted small uppercase font-weight-800">Qatnashish</p><h3>${participationRate}%</h3></div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-2 animate-fade mb-4">
                         <div class="card">
-                            <div class="flex-between mb-4"><h3>Natijalar Taqsimoti</h3><div class="badge badge-info" id="stat-count">${filteredSubs.length} ta natija</div></div>
+                            <div class="flex-between mb-4"><h3>Natijalar Taqsimoti</h3><div class="badge badge-info">${filteredSubs.length} ta natija</div></div>
                             <div style="max-width:300px; margin:0 auto"><canvas id="analyticsPieChart"></canvas></div>
                             <div class="mt-4" id="pie-legend"></div>
                         </div>
                         <div class="card">
-                            <h3>Guruhlar bo'yicha tahlil</h3>
-                            <div class="mt-3 table-container"><table id="groups-table"><thead><tr><th>Guruh</th><th>Topshirdi</th><th>Foiz</th></tr></thead><tbody id="groups-body"></tbody></table></div>
+                            <div class="flex-between mb-4"><h3>Gender Tahlili</h3></div>
+                            <div style="max-width:300px; margin:0 auto"><canvas id="genderChart"></canvas></div>
+                            <div class="mt-4" id="gender-legend"></div>
                         </div>
                     </div>
+                    
+                    <div class="card mb-4 animate-fade">
+                        <h3>Guruhlar bo'yicha tahlil (Kurs kesimida)</h3>
+                        <div class="mt-3 table-container"><table id="groups-table"><thead><tr><th>Kurs</th><th>Yo'nalish</th><th>Guruh</th><th>Topshirdi / Jami</th><th>Foiz</th></tr></thead><tbody id="groups-body"></tbody></table></div>
+                    </div>
+                    
                     <div id="q-details-area" class="mt-4"></div>
                 `;
 
@@ -1800,24 +1852,119 @@ ${groupsContent}
                         <strong>${data[i]} ta (${filteredSubs.length ? Math.round(data[i] / filteredSubs.length * 100) : 0}%)</strong>
                     </div>`).join('');
 
-                document.getElementById('groups-body').innerHTML = filteredGroups.map(g => {
+                // Render gender chart
+                const genderCounts = { boy: 0, girl: 0 };
+                filteredSubs.forEach(s => {
+                    const group = filteredGroups.find(g => g.id === s.groupId);
+                    if (group) {
+                        const student = group.students.find(st => st.name === s.studentName);
+                        const sGender = student ? (student.gender || inferGender(student.name)) : 'boy';
+                        if (sGender === 'girl') genderCounts.girl++;
+                        else genderCounts.boy++;
+                    }
+                });
+                
+                const genderCtx = document.getElementById('genderChart').getContext('2d');
+                new Chart(genderCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['O\'g\'il bolalar', 'Qiz bolalar'],
+                        datasets: [{ data: [genderCounts.boy, genderCounts.girl], backgroundColor: ['#0055FF', '#FF66CC'], borderWidth: 0 }]
+                    },
+                    options: { plugins: { legend: { display: false } } }
+                });
+                
+                const totalGender = genderCounts.boy + genderCounts.girl;
+                document.getElementById('gender-legend').innerHTML = `
+                    <div class="flex-between mb-2">
+                        <div class="flex-gap"><div style="width:12px; height:12px; background:#0055FF; border-radius:3px"></div><span>O'g'il bolalar</span></div>
+                        <strong>${genderCounts.boy} ta (${totalGender ? Math.round(genderCounts.boy / totalGender * 100) : 0}%)</strong>
+                    </div>
+                    <div class="flex-between mb-2">
+                        <div class="flex-gap"><div style="width:12px; height:12px; background:#FF66CC; border-radius:3px"></div><span>Qiz bolalar</span></div>
+                        <strong>${genderCounts.girl} ta (${totalGender ? Math.round(genderCounts.girl / totalGender * 100) : 0}%)</strong>
+                    </div>`;
+
+                // Group by Course and Direction, displaying each group
+                const sortedGroups = [...filteredGroups].sort((a, b) => {
+                    const cA = parseInt(a.course || 1);
+                    const cB = parseInt(b.course || 1);
+                    if (cA !== cB) return cA - cB;
+                    const d1 = a.direction || '';
+                    const d2 = b.direction || '';
+                    if (d1 !== d2) return d1.localeCompare(d2);
+                    return (a.name || '').localeCompare(b.name || '');
+                });
+                
+                document.getElementById('groups-body').innerHTML = sortedGroups.map(g => {
+                    const gStudents = g.students?.length || 0;
                     const gSubs = filteredSubs.filter(s => s.groupId === g.id);
-                    const prc = g.students?.length ? Math.round(gSubs.length / g.students.length * 100) : 0;
-                    return `<tr><td>${g.name}</td><td>${gSubs.length} / ${g.students?.length || 0}</td><td><div class="flex-gap">${prc}% <div class="progress-bar-container" style="flex:1"><div class="progress-bar-fill" style="width:${prc}%"></div></div></div></td></tr>`;
+                    const tSubmits = new Set(gSubs.map(s => s.studentName)).size;
+                    
+                    const prc = gStudents ? Math.round(tSubmits / gStudents * 100) : 0;
+                    return `<tr>
+                        <td><span class="badge badge-info"><b>${g.course || 1}-kurs</b></span></td>
+                        <td>${g.direction || 'Boshqa'}</td>
+                        <td>${g.name}</td>
+                        <td>${tSubmits} / ${gStudents}</td>
+                        <td><div class="flex-gap">${prc}% <div class="progress-bar-container" style="flex:1"><div class="progress-bar-fill" style="width:${prc}%"></div></div></div></td>
+                    </tr>`;
                 }).join('');
 
                 if (tId !== 'all' && selectedTest?.questions) {
                     const qDetails = document.getElementById('q-details-area');
-                    qDetails.innerHTML = `<div class="card"><h3>Savollar tahlili</h3><div id="q-breakdown" class="mt-4"></div></div>`;
-                    const qB = document.getElementById('q-breakdown');
+                    let qHtml = `<div class="card"><h3>Har bir savol bo'yicha tahlil</h3><div class="mt-4 grid grid-2" style="gap: 20px">`;
+                    const chartDataArray = [];
+                    
                     selectedTest.questions.forEach((q, i) => {
                         if (q.type === 'text' || !q.options) return;
                         const qCounts = {};
                         q.options.forEach(o => qCounts[o.text] = 0);
                         filteredSubs.forEach(s => { if (s.answers && s.answers[i]) qCounts[s.answers[i]] = (qCounts[s.answers[i]] || 0) + 1; });
-                        qB.innerHTML += `<div class="mb-4 p-3 border-bottom"><strong>${i + 1}. ${q.text}</strong><div class="grid grid-4 mt-2">${q.options.map(o => `<div class="small">${o.text}: <b>${qCounts[o.text]} ta</b></div>`).join('')}</div></div>`;
+                        
+                        const canvasId = `qChart_${i}`;
+                        qHtml += `<div class="mb-4 p-4 border" style="border-radius: 12px; background: rgba(0,0,0,0.01)">
+                            <strong style="display:block; margin-bottom:15px; font-size: 0.95rem">${i + 1}. ${q.text}</strong>
+                            <div style="height: 180px; width: 100%"><canvas id="${canvasId}"></canvas></div>
+                        </div>`;
+                        
+                        chartDataArray.push({
+                            id: canvasId,
+                            labels: Object.keys(qCounts).map(l => l.length > 15 ? l.substring(0, 15) + '...' : l),
+                            data: Object.values(qCounts),
+                            fullLabels: Object.keys(qCounts)
+                        });
+                    });
+                    
+                    qHtml += `</div></div>`;
+                    qDetails.innerHTML = qHtml;
+                    
+                    chartDataArray.forEach(cd => {
+                        const qCtx = document.getElementById(cd.id).getContext('2d');
+                        new Chart(qCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: cd.labels,
+                                datasets: [{
+                                    label: 'Tanlandi',
+                                    data: cd.data,
+                                    backgroundColor: 'rgba(67, 24, 255, 0.7)',
+                                    borderRadius: 4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: { callbacks: { title: function(context) { return cd.fullLabels[context[0].dataIndex]; } } }
+                                },
+                                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                            }
+                        });
                     });
                 }
+
                 if (window.lucide) window.lucide.createIcons();
             } catch (err) {
                 contentArea.innerHTML = `<div class="card text-danger p-5 text-center">Xatolik: ${err.message}</div>`;
