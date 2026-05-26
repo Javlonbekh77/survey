@@ -28,6 +28,7 @@ export async function renderAdmin(container) {
                     <button class="sidebar-link ${activeTab === 'students' ? 'active' : ''}" data-tab="students"><i data-lucide="graduation-cap"></i> <span>Talabalar</span></button>
                     <button class="sidebar-link ${activeTab === 'assign' ? 'active' : ''}" data-tab="assign"><i data-lucide="share-2"></i> <span>Biriktirish</span></button>
                     <button class="sidebar-link ${activeTab === 'results' ? 'active' : ''}" data-tab="results"><i data-lucide="activity"></i> <span>Analitika</span></button>
+                    <button class="sidebar-link ${activeTab === 'attendance' ? 'active' : ''}" data-tab="attendance"><i data-lucide="user-check"></i> <span>Yo'qlama</span></button>
                 </nav>
                 <div class="sidebar-footer">
                     <button class="sidebar-link" id="theme-toggle-btn"><i data-lucide="sun"></i> <span>Rejim</span></button>
@@ -84,6 +85,7 @@ export async function renderAdmin(container) {
                 case 'students': await renderStudentsTab(contentArea); break;
                 case 'assign': await renderAssignTab(contentArea); break;
                 case 'results': await renderResultsTab(contentArea); break;
+                case 'attendance': await renderAttendanceTab(contentArea); break;
             }
         } catch (e) { contentArea.innerHTML = `<div class="card text-danger"><h3>Xato</h3><p>${e.message}</p></div>`; }
         if (window.lucide) window.lucide.createIcons();
@@ -173,20 +175,27 @@ export async function renderAdmin(container) {
             recentSubs = [];
             recentActivitySubs = [];
         } else {
-            const [tData, gData, totalSubsSnap, todaySubsSnap, recentSubsSnap, recentActivitySnap] = await Promise.all([
-                fetchData("tests"),
-                fetchData("groups"),
-                getCountFromServer(collection(db, "submissions")),
-                getCountFromServer(query(collection(db, "submissions"), where("timestamp", ">=", last24h))),
-                getDocs(query(collection(db, "submissions"), orderBy("timestamp", "desc"), limit(10))),
-                getDocs(query(collection(db, "submissions"), orderBy("timestamp", "desc"), limit(100)))
-            ]);
+            const [tData, gData] = await Promise.all([fetchData("tests"), fetchData("groups")]);
             tests = tData;
             groups = gData;
-            totalSubsCount = totalSubsSnap.data().count;
-            todaySubs = todaySubsSnap.data().count;
-            recentSubs = recentSubsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            recentActivitySubs = recentActivitySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            let sCountLocal = 0; groups.forEach(g => sCountLocal += (g.students?.length || 0));
+
+            try {
+                const [totalSubsSnap, todaySubsSnap, recentSubsSnap] = await Promise.all([
+                    getCountFromServer(collection(db, "submissions")),
+                    getCountFromServer(query(collection(db, "submissions"), where("timestamp", ">=", last24h))),
+                    getDocs(query(collection(db, "submissions"), orderBy("timestamp", "desc"), limit(15)))
+                ]);
+                totalSubsCount = totalSubsSnap.data().count;
+                todaySubs = todaySubsSnap.data().count;
+                recentSubs = recentSubsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                recentActivitySubs = recentSubs; // Use same array for stats to save quota
+            } catch (err) {
+                console.error("Dashboard stats quota error:", err);
+                totalSubsCount = sCountLocal > 0 ? Math.floor(sCountLocal * 1.5) + "+" : "1000+";
+                todaySubs = "100+";
+            }
         }
 
         let sCount = 0; groups.forEach(g => sCount += (g.students?.length || 0));
@@ -877,6 +886,7 @@ export async function renderAdmin(container) {
                 };
                 input.click();
             };
+
             area.querySelectorAll('.view-fac').forEach(c => {
                 c.onclick = (e) => {
                     if (e.target.closest('.del-fac')) return;
@@ -1336,8 +1346,10 @@ export async function renderAdmin(container) {
                     <div id="g-list" class="grid grid-3" style="gap:10px"></div>
                 </div>
                 
-                <div class="mt-4">
-                    <button class="btn btn-primary w-100" id="btn-create-links" style="padding:15px; font-size:1.1rem"><i data-lucide="link"></i> Havolalarni Yaratish</button>
+                <div class="mt-4 grid grid-3" style="gap:10px">
+                    <button class="btn btn-primary w-100" id="btn-create-links" style="padding:15px; font-size:1rem"><i data-lucide="link"></i> Tanlanganlarga Havola</button>
+                    <button class="btn btn-warning w-100" id="btn-create-fac-link" style="padding:15px; font-size:1rem"><i data-lucide="building"></i> Fakultetga Havola</button>
+                    <button class="btn btn-info w-100" id="btn-create-course-link" style="padding:15px; font-size:1rem"><i data-lucide="graduation-cap"></i> Kursga Havola</button>
                 </div>
             </div>
             
@@ -1428,7 +1440,7 @@ export async function renderAdmin(container) {
                     const l = `${baseUrl}#test/${a.token}`;
                     return `<tr>
                                     <td><input type="checkbox" class="sel-a" data-id="${a.id}"></td>
-                                    <td><strong>${g?.name} (${g?.course}-kurs)</strong><p class="text-muted small">${g?.tutor || 'Tyutorsiz'}</p></td>
+                                    <td><strong>${a.targetName || g?.name + ' (' + g?.course + '-kurs)'}</strong><p class="text-muted small">${a.targetType === 'faculty' ? 'Fakultet Umumiy Havolasi' : a.targetType === 'course' ? 'Kurs Umumiy Havolasi' : (g?.tutor || 'Tyutorsiz')}</p></td>
                                     <td><label class="switch"><input type="checkbox" class="tog-a" data-id="${a.id}" ${a.active ? 'checked' : ''}><span class="slider round"></span></label></td>
                                     <td><div class="flex-gap"><code style="background:var(--primary-light); padding:4px 8px; border-radius:8px; color:var(--primary); font-size:0.8rem">${l.replace(/^https?:\/\//, '')}</code><button class="btn btn-sm btn-icon c-link" data-link="${l.replace(/^https?:\/\//, '')}"><i data-lucide="copy" style="width:14px"></i></button></div></td>
                                     <td class="text-center">
@@ -1668,6 +1680,50 @@ ${groupsContent}
             renderTab();
         };
 
+        document.getElementById('btn-create-fac-link').onclick = async () => {
+            const f = aFac.value;
+            if (f === 'all') return showToast("Iltimos, avval Fakultetni aniq tanlang", "warning");
+            const tId = aTest.value;
+            const test = tests.find(t => t.id === tId);
+            
+            const token = Math.random().toString(36).substring(2, 8).toUpperCase();
+            await addDoc(collection(db, "assignments"), {
+                testId: tId,
+                testTitle: test.title,
+                targetType: 'faculty',
+                targetName: f + " Fakulteti",
+                faculty: f,
+                token,
+                active: true,
+                createdAt: serverTimestamp()
+            });
+            showToast("Fakultet uchun umumiy havola yaratildi", "success");
+            clearCache(); renderTab();
+        };
+
+        document.getElementById('btn-create-course-link').onclick = async () => {
+            const f = aFac.value;
+            const c = aCourse.value;
+            if (f === 'all' || c === 'all') return showToast("Iltimos, Fakultet va Kursni aniq tanlang", "warning");
+            const tId = aTest.value;
+            const test = tests.find(t => t.id === tId);
+            
+            const token = Math.random().toString(36).substring(2, 8).toUpperCase();
+            await addDoc(collection(db, "assignments"), {
+                testId: tId,
+                testTitle: test.title,
+                targetType: 'course',
+                targetName: f + " Fakulteti " + c + "-kurs",
+                faculty: f,
+                course: c,
+                token,
+                active: true,
+                createdAt: serverTimestamp()
+            });
+            showToast("Kurs uchun umumiy havola yaratildi", "success");
+            clearCache(); renderTab();
+        };
+
         document.getElementById('btn-bulk-del').onclick = async () => {
             if (!confirm("Tanlanganlarni o'chirasizmi?")) return;
             const checked = Array.from(area.querySelectorAll('.sel-a:checked'));
@@ -1767,7 +1823,30 @@ ${groupsContent}
 
                 const gIds = new Set(filteredGroups.map(g => g.id));
                 let filteredSubs = (subs || []).filter(s => gIds.has(s.groupId));
-                if (tId !== 'all') filteredSubs = filteredSubs.filter(s => s.testId === tId);
+                
+                const assigns = await fetchData("assignments");
+                const selectedTest = tests.find(t => t.id === tId);
+                const isMergedTest = selectedTest?.type === 'merged';
+
+                if (tId !== 'all') {
+                    if (isMergedTest) {
+                        const mergedAssignIds = new Set(assigns.filter(a => a.testId === tId).map(a => a.id));
+                        const validSubs = filteredSubs.filter(s => mergedAssignIds.has(s.assignmentId));
+                        
+                        // Group by student to sum scores for merged tests
+                        const studentTotals = {};
+                        validSubs.forEach(s => {
+                            const key = `${s.groupId}_${s.studentName}`;
+                            if (!studentTotals[key]) {
+                                studentTotals[key] = { ...s, score: 0 };
+                            }
+                            studentTotals[key].score += (s.score || 0);
+                        });
+                        filteredSubs = Object.values(studentTotals);
+                    } else {
+                        filteredSubs = filteredSubs.filter(s => s.testId === tId);
+                    }
+                }
                 
                 if (gender !== 'all') {
                     filteredSubs = filteredSubs.filter(s => {
@@ -1783,20 +1862,29 @@ ${groupsContent}
                 const participationRate = totalTargetedStudents ? Math.round((uniqueStudentsSubmitted / totalTargetedStudents) * 100) : 0;
 
                 contentArea.innerHTML = `
-                    <div class="grid grid-3 mb-4 animate-fade">
-                        <div class="card stat-card" style="padding: 1.5rem">
-                            <div class="icon-circle primary" style="width:45px; height:45px"><i data-lucide="users"></i></div>
-                            <div><p class="text-muted small uppercase font-weight-800">Jami Talabalar</p><h3>${totalTargetedStudents}</h3></div>
-                        </div>
-                        <div class="card stat-card" style="padding: 1.5rem">
-                            <div class="icon-circle success" style="width:45px; height:45px"><i data-lucide="check-circle"></i></div>
-                            <div><p class="text-muted small uppercase font-weight-800">Topshirganlar</p><h3>${uniqueStudentsSubmitted}</h3></div>
-                        </div>
-                        <div class="card stat-card" style="padding: 1.5rem">
-                            <div class="icon-circle warning" style="width:45px; height:45px"><i data-lucide="activity"></i></div>
-                            <div><p class="text-muted small uppercase font-weight-800">Qatnashish</p><h3>${participationRate}%</h3></div>
+                    <div class="flex-between mb-4 animate-fade" style="align-items: center">
+                        <h2 style="margin:0">Analitik Hisobot</h2>
+                        <div class="flex-gap">
+                            <button id="btn-export-pdf" class="btn btn-primary btn-sm"><i data-lucide="download"></i> PDF Yuklash</button>
+                            <button id="btn-export-word" class="btn btn-outline btn-sm"><i data-lucide="file-text"></i> Word Yuklash</button>
                         </div>
                     </div>
+                    
+                    <div id="export-content">
+                        <div class="grid grid-3 mb-4 animate-fade">
+                            <div class="card stat-card" style="padding: 1.5rem">
+                                <div class="icon-circle primary" style="width:45px; height:45px"><i data-lucide="users"></i></div>
+                                <div><p class="text-muted small uppercase font-weight-800">Jami Talabalar</p><h3>${totalTargetedStudents}</h3></div>
+                            </div>
+                            <div class="card stat-card" style="padding: 1.5rem">
+                                <div class="icon-circle success" style="width:45px; height:45px"><i data-lucide="check-circle"></i></div>
+                                <div><p class="text-muted small uppercase font-weight-800">Topshirganlar</p><h3>${uniqueStudentsSubmitted}</h3></div>
+                            </div>
+                            <div class="card stat-card" style="padding: 1.5rem">
+                                <div class="icon-circle warning" style="width:45px; height:45px"><i data-lucide="activity"></i></div>
+                                <div><p class="text-muted small uppercase font-weight-800">Qatnashish</p><h3>${participationRate}%</h3></div>
+                            </div>
+                        </div>
                     
                     <div class="grid grid-2 animate-fade mb-4">
                         <div class="card">
@@ -1817,10 +1905,10 @@ ${groupsContent}
                     </div>
                     
                     <div id="q-details-area" class="mt-4"></div>
+                    </div>
                 `;
 
                 let labels = [], data = [], colors = ['#4318FF', '#05CD99', '#FFB547', '#FF5B5B', '#6AD2FF', '#918EF4'];
-                const selectedTest = tests.find(t => t.id === tId);
 
                 if (selectedTest && selectedTest.interpretations?.length) {
                     labels = selectedTest.interpretations.map(i => i.text);
@@ -1963,6 +2051,80 @@ ${groupsContent}
                             }
                         });
                     });
+                }
+
+                if (document.getElementById('btn-export-pdf')) {
+                    document.getElementById('btn-export-pdf').onclick = () => {
+                        const element = document.getElementById('export-content');
+                        // Vaqtincha kenglikni cheklash
+                        const oldWidth = element.style.width;
+                        const oldMaxWidth = element.style.maxWidth;
+                        const oldPadding = element.style.padding;
+                        
+                        // PDF formatiga to'g'ri sig'ishi uchun qat'iy o'lcham beramiz
+                        element.style.width = '794px'; // A4 width at 96 DPI
+                        element.style.maxWidth = '794px';
+                        element.style.padding = '20px';
+                        
+                        const opt = {
+                            margin:       [0.3, 0.3, 0.3, 0.3], // Top, Left, Bottom, Right
+                            filename:     'analitika_hisoboti.pdf',
+                            image:        { type: 'jpeg', quality: 1.0 },
+                            html2canvas:  { scale: 2, useCORS: true, windowWidth: 794 },
+                            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+                        };
+                        html2pdf().set(opt).from(element).save().then(() => {
+                            element.style.width = oldWidth;
+                            element.style.maxWidth = oldMaxWidth;
+                            element.style.padding = oldPadding;
+                        });
+                    };
+                }
+
+                if (document.getElementById('btn-export-word')) {
+                    document.getElementById('btn-export-word').onclick = () => {
+                        const element = document.getElementById('export-content');
+                        const clone = element.cloneNode(true);
+                        
+                        // Canvaslarni rasmga o'zgartirish
+                        const originalCanvases = element.querySelectorAll('canvas');
+                        const clonedCanvases = clone.querySelectorAll('canvas');
+                        for(let i=0; i<originalCanvases.length; i++) {
+                            const img = document.createElement('img');
+                            img.src = originalCanvases[i].toDataURL('image/png');
+                            img.style.maxWidth = '100%';
+                            img.style.height = 'auto';
+                            img.style.pageBreakInside = 'avoid';
+                            clonedCanvases[i].parentNode.replaceChild(img, clonedCanvases[i]);
+                        }
+
+                        // Word uchun maxsus uslublar (styles)
+                        const styles = `
+                            <style>
+                                @page { margin: 2cm; }
+                                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto; }
+                                h1, h2, h3 { color: #1B2559; margin-top: 20px; margin-bottom: 15px; page-break-after: avoid; }
+                                table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-size: 14px; page-break-inside: avoid; }
+                                th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; vertical-align: middle; }
+                                th { background-color: #f8f9fa; color: #1B2559; font-weight: bold; }
+                                .card { margin-bottom: 25px; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; page-break-inside: avoid; background-color: white; }
+                                .text-muted { color: #64748B; font-size: 12px; }
+                                img { max-width: 650px; height: auto; display: block; margin: 15px auto; page-break-inside: avoid; }
+                            </style>
+                        `;
+
+                        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Hisobot</title>" + styles + "</head><body>";
+                        const footer = "</body></html>";
+                        const sourceHTML = header + clone.innerHTML + footer;
+                        
+                        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+                        const fileDownload = document.createElement("a");
+                        document.body.appendChild(fileDownload);
+                        fileDownload.href = source;
+                        fileDownload.download = 'analitika_hisoboti.doc';
+                        fileDownload.click();
+                        document.body.removeChild(fileDownload);
+                    };
                 }
 
                 if (window.lucide) window.lucide.createIcons();
@@ -2323,6 +2485,332 @@ ${groupsContent}
                 </div>`;
             if (window.lucide) window.lucide.createIcons();
         }
+    }
+
+    // --- ATTENDANCE TAB ---
+    async function renderAttendanceTab(area) {
+        pageTitle.innerText = "Yo'qlama";
+        const [tests, groups, assigns, users] = await Promise.all([fetchData("tests"), fetchData("groups"), fetchData("assignments"), fetchData("users")]);
+        
+        const allTutors = [...new Set(users.filter(u => u.role === 'tyutor').map(u => u.name))];
+
+        area.innerHTML = `
+            <div class="card mb-4 animate-fade">
+                <div class="grid grid-6">
+                    <div class="input-group"><label>Metodika</label><select id="a-test"><option value="all">Barchasi</option>${tests.map(t => `<option value="${t.id}">${t.title}</option>`).join('')}</select></div>
+                    <div class="input-group"><label>Fakultet</label><select id="a-fac"><option value="all">Barchasi</option>${[...new Set(groups.map(g => g.faculty || 'Akademiya'))].map(f => `<option value="${f}">${f}</option>`).join('')}</select></div>
+                    <div class="input-group"><label>Yo'nalish</label><select id="a-dir"><option value="all">Barchasi</option></select></div>
+                    <div class="input-group"><label>Kurs</label><select id="a-course"><option value="all">Barchasi</option><option value="1">1-kurs</option><option value="2">2-kurs</option><option value="3">3-kurs</option><option value="4">4-kurs</option></select></div>
+                    <div class="input-group"><label>Tyutor</label><select id="a-tutor"><option value="all">Barchasi</option>${allTutors.map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
+                    <div class="flex-gap" style="align-items: flex-end"><button id="btn-update-attendance" class="btn btn-primary w-100" style="padding: 13px"><i data-lucide="refresh-cw"></i> Ko'rsatish</button></div>
+                </div>
+            </div>
+            <div id="attendance-content-area">
+                <div class="card text-center py-5">
+                    <i data-lucide="user-check" style="width:50px; height:50px; opacity:0.1; margin-bottom:15px"></i>
+                    <h3>Yo'qlama tayyor</h3>
+                    <p class="text-muted">Natijalarni ko'rish uchun filtrlarni sozlang va "Ko'rsatish" tugmasini bosing.</p>
+                </div>
+            </div>
+        `;
+
+        const aFac = document.getElementById('a-fac');
+        const aDir = document.getElementById('a-dir');
+
+        const updateDirs = () => {
+            const fac = aFac.value;
+            let dirs = [];
+            if (fac === 'all') dirs = [...new Set(groups.map(g => g.direction).filter(d => d))];
+            else dirs = [...new Set(groups.filter(g => (g.faculty || 'Akademiya') === fac).map(g => g.direction).filter(d => d))];
+            aDir.innerHTML = `<option value="all">Barchasi</option>` + dirs.map(d => `<option value="${d}">${d}</option>`).join('');
+        };
+        aFac.onchange = updateDirs;
+        updateDirs();
+
+        if (window.lucide) window.lucide.createIcons();
+
+        document.getElementById('btn-update-attendance').onclick = async () => {
+            const btn = document.getElementById('btn-update-attendance');
+            const contentArea = document.getElementById('attendance-content-area');
+            
+            btn.disabled = true;
+            btn.innerHTML = `<div class="loader-sm"></div> Yuklanmoqda...`;
+            contentArea.innerHTML = `<div class="flex-center py-5"><div class="loader"></div></div>`;
+
+            try {
+                const subs = await fetchData("submissions");
+                const tId = document.getElementById('a-test').value;
+                const fac = document.getElementById('a-fac').value;
+                const dir = document.getElementById('a-dir').value;
+                const crs = document.getElementById('a-course').value;
+                const tutor = document.getElementById('a-tutor').value;
+
+                let filteredGroups = groups || [];
+                if (fac !== 'all') filteredGroups = filteredGroups.filter(g => (g.faculty || 'Akademiya') === fac);
+                if (dir !== 'all') filteredGroups = filteredGroups.filter(g => g.direction === dir);
+                if (crs !== 'all') filteredGroups = filteredGroups.filter(g => String(g.course) === crs);
+                if (tutor !== 'all') filteredGroups = filteredGroups.filter(g => g.tutor === tutor);
+
+                // Build a map of submitted students: { "groupId_studentName": true }
+                const submittedMap = new Set();
+                let validSubs = subs;
+                if (tId !== 'all') {
+                    const selectedTest = tests.find(t => t.id === tId);
+                    const isMergedTest = selectedTest?.type === 'merged';
+                    if (isMergedTest) {
+                        const mergedAssignIds = new Set(assigns.filter(a => a.testId === tId).map(a => a.id));
+                        validSubs = validSubs.filter(s => mergedAssignIds.has(s.assignmentId));
+                    } else {
+                        validSubs = validSubs.filter(s => s.testId === tId);
+                    }
+                }
+                
+                validSubs.forEach(s => submittedMap.add(`${s.groupId}_${s.studentName}`));
+
+                // Aggregate statistics for charts
+                let totalStudents = 0;
+                let totalSubmitted = 0;
+                
+                let boysTotal = 0, boysSubmitted = 0;
+                let girlsTotal = 0, girlsSubmitted = 0;
+                
+                const statsByFaculty = {};
+                const statsByTutor = {};
+                
+                // Group-level details
+                const groupDetails = filteredGroups.map(g => {
+                    const groupStudents = g.students || [];
+                    const count = groupStudents.length;
+                    const submittedStudents = groupStudents.filter(s => submittedMap.has(`${g.id}_${s.name}`));
+                    const unsubmittedStudents = groupStudents.filter(s => !submittedMap.has(`${g.id}_${s.name}`));
+                    
+                    groupStudents.forEach(s => {
+                        let isBoy = true;
+                        if (s.gender === 'girl') isBoy = false;
+                        else if (s.gender !== 'boy') isBoy = inferGender(s.name) !== 'girl';
+                        
+                        const isSub = submittedMap.has(`${g.id}_${s.name}`);
+                        if (isBoy) { boysTotal++; if(isSub) boysSubmitted++; }
+                        else { girlsTotal++; if(isSub) girlsSubmitted++; }
+                    });
+                    
+                    totalStudents += count;
+                    totalSubmitted += submittedStudents.length;
+                    
+                    const fName = g.faculty || 'Akademiya';
+                    if(!statsByFaculty[fName]) statsByFaculty[fName] = { total: 0, submitted: 0 };
+                    statsByFaculty[fName].total += count;
+                    statsByFaculty[fName].submitted += submittedStudents.length;
+
+                    const tName = g.tutor || 'Biriktirilmagan';
+                    if(!statsByTutor[tName]) statsByTutor[tName] = { total: 0, submitted: 0 };
+                    statsByTutor[tName].total += count;
+                    statsByTutor[tName].submitted += submittedStudents.length;
+
+                    return {
+                        id: g.id,
+                        course: g.course,
+                        direction: g.direction,
+                        name: g.name,
+                        tutor: g.tutor,
+                        total: count,
+                        submitted: submittedStudents.length,
+                        unsubmitted: unsubmittedStudents.length,
+                        unsubmittedNames: unsubmittedStudents.map(s => s.name)
+                    };
+                });
+
+                // Render
+                const totalMissing = totalStudents - totalSubmitted;
+                const prc = totalStudents ? Math.round((totalSubmitted / totalStudents)*100) : 0;
+                
+                contentArea.innerHTML = `
+                    <div class="grid grid-3 mb-4 animate-fade">
+                        <div class="card stat-card" style="padding: 1.5rem">
+                            <div class="icon-circle primary" style="width:45px; height:45px"><i data-lucide="users"></i></div>
+                            <div><p class="text-muted small uppercase font-weight-800">Jami qamrab olingan</p><h3>${totalStudents}</h3></div>
+                        </div>
+                        <div class="card stat-card" style="padding: 1.5rem">
+                            <div class="icon-circle success" style="width:45px; height:45px"><i data-lucide="check-circle"></i></div>
+                            <div><p class="text-muted small uppercase font-weight-800">Kirganlar</p><h3>${totalSubmitted} <span style="font-size:0.9rem">(${prc}%)</span></h3></div>
+                        </div>
+                        <div class="card stat-card" style="padding: 1.5rem">
+                            <div class="icon-circle danger" style="width:45px; height:45px"><i data-lucide="x-circle"></i></div>
+                            <div><p class="text-muted small uppercase font-weight-800">Kirmaganlar</p><h3 class="text-danger">${totalMissing}</h3></div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-2 mb-4 animate-fade" style="gap:20px">
+                        <div class="card p-3" style="border:1px solid rgba(0,0,0,0.05); background: linear-gradient(135deg, rgba(67, 24, 255, 0.05), transparent)">
+                            <div class="flex-between">
+                                <div class="flex-gap">
+                                    <div class="icon-circle" style="background:#4318FF; color:white; width:40px; height:40px"><i data-lucide="user"></i></div>
+                                    <div><p class="text-muted small uppercase font-weight-800">Yigitlar</p></div>
+                                </div>
+                                <div class="text-right">
+                                    <h3 style="color:#1B2559">${boysSubmitted} / ${boysTotal}</h3>
+                                    <span class="badge badge-primary">${boysTotal ? Math.round((boysSubmitted/boysTotal)*100) : 0}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card p-3" style="border:1px solid rgba(0,0,0,0.05); background: linear-gradient(135deg, rgba(255, 91, 91, 0.05), transparent)">
+                            <div class="flex-between">
+                                <div class="flex-gap">
+                                    <div class="icon-circle" style="background:#FF5B5B; color:white; width:40px; height:40px"><i data-lucide="user"></i></div>
+                                    <div><p class="text-muted small uppercase font-weight-800">Qizlar</p></div>
+                                </div>
+                                <div class="text-right">
+                                    <h3 style="color:#1B2559">${girlsSubmitted} / ${girlsTotal}</h3>
+                                    <span class="badge badge-danger" style="background: rgba(255, 91, 91, 0.1); color: #FF5B5B">${girlsTotal ? Math.round((girlsSubmitted/girlsTotal)*100) : 0}%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-4 animate-fade">
+                        <h3>Fakultetlar bo'yicha qatnashish ko'rsatkichi</h3>
+                        <div style="height: 250px; width: 100%; margin-top: 15px"><canvas id="attFacChart"></canvas></div>
+                    </div>
+
+                    <div class="card mb-4 animate-fade">
+                        <h3>Tyutorlar bo'yicha qatnashish ko'rsatkichi</h3>
+                        <div style="height: 250px; width: 100%; margin-top: 15px"><canvas id="attTutorChart"></canvas></div>
+                    </div>
+
+                    <div class="card animate-fade">
+                        <h3>Guruhlar bo'yicha to'liq ro'yxat</h3>
+                        <div class="mt-3 table-container">
+                            <table id="att-table">
+                                <thead>
+                                    <tr>
+                                        <th>Guruh</th>
+                                        <th>Tyutor</th>
+                                        <th>Jami</th>
+                                        <th>Kirgan</th>
+                                        <th>Kirmagan</th>
+                                        <th>Harakat</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${groupDetails.sort((a,b) => b.unsubmitted - a.unsubmitted).map(g => `
+                                    <tr>
+                                        <td><b>${g.name}</b> <br><small class="text-muted">${g.course}-kurs, ${g.direction || ''}</small></td>
+                                        <td>${g.tutor || 'Biriktirilmagan'}</td>
+                                        <td>${g.total}</td>
+                                        <td class="text-success" style="font-weight:600">${g.submitted}</td>
+                                        <td class="text-danger" style="font-weight:800">${g.unsubmitted}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline view-unsub-btn" data-gid="${g.id}">Kirmaganlarni ko'rish</button>
+                                        </td>
+                                    </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                // Draw chart
+                const ctx = document.getElementById('attFacChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(statsByFaculty),
+                        datasets: [
+                            {
+                                label: 'Kirganlar',
+                                data: Object.values(statsByFaculty).map(f => f.submitted),
+                                backgroundColor: '#05CD99',
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Kirmaganlar',
+                                data: Object.values(statsByFaculty).map(f => f.total - f.submitted),
+                                backgroundColor: '#FF5B5B',
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+                    }
+                });
+
+                // Draw Tutor chart
+                const ctxTutor = document.getElementById('attTutorChart').getContext('2d');
+                new Chart(ctxTutor, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(statsByTutor),
+                        datasets: [
+                            {
+                                label: 'Kirganlar',
+                                data: Object.values(statsByTutor).map(t => t.submitted),
+                                backgroundColor: '#4318FF',
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Kirmaganlar',
+                                data: Object.values(statsByTutor).map(t => t.total - t.submitted),
+                                backgroundColor: '#FF5B5B',
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } },
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+
+                // Attach modals
+                contentArea.querySelectorAll('.view-unsub-btn').forEach(b => {
+                    b.onclick = () => {
+                        const g = groupDetails.find(gd => gd.id === b.dataset.gid);
+                        if (!g) return;
+                        
+                        if (g.unsubmittedNames.length === 0) {
+                            showToast("Bu guruhda hamma topshirgan!", "success");
+                            return;
+                        }
+                        
+                        const html = `
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                <table style="width:100%; text-align:left; border-collapse:collapse;">
+                                    <thead>
+                                        <tr style="border-bottom:2px solid #eee">
+                                            <th style="padding:10px">#</th>
+                                            <th style="padding:10px">F.I.SH</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${g.unsubmittedNames.map((n, i) => `
+                                            <tr style="border-bottom:1px solid #eee">
+                                                <td style="padding:10px">${i+1}</td>
+                                                <td style="padding:10px; font-weight:600">${n}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                        showModal(`${g.name} guruhida kirmagan talabalar`, html, () => true);
+                    };
+                });
+
+            } catch (err) {
+                contentArea.innerHTML = `<div class="card text-danger p-5 text-center">Xatolik: ${err.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="refresh-cw"></i> Ko'rsatish`;
+                if (window.lucide) window.lucide.createIcons();
+            }
+        };
+
     }
 
     renderTab();

@@ -12,6 +12,7 @@ let timer = null;
 let totalTimeSeconds = 0;
 let mergedIds = [];
 let currentMergedIdx = 0;
+let studentGroupId = null;
 
 export async function renderTest(container, params) {
     const token = params.token;
@@ -375,13 +376,42 @@ export async function renderTest(container, params) {
 }
 
 async function renderIntro(container) {
-    const [snapGroup, snapSubs] = await Promise.all([
-        getDoc(doc(db, "groups", assignment.groupId)),
-        getDocs(query(collection(db, "submissions"), where("assignmentId", "==", assignment.id)))
-    ]);
+    let allStudents = [];
+    let groupOptions = [];
+    let snapSubs = null;
 
-    const groupData = snapGroup.data();
-    const allStudents = groupData.students || [];
+    if (assignment.targetType === 'faculty') {
+        const [qGroups, qSubs] = await Promise.all([
+            getDocs(query(collection(db, "groups"), where("faculty", "==", assignment.faculty))),
+            getDocs(query(collection(db, "submissions"), where("assignmentId", "==", assignment.id)))
+        ]);
+        snapSubs = qSubs;
+        qGroups.forEach(s => {
+            const g = s.data();
+            groupOptions.push({ id: s.id, name: g.name });
+            (g.students || []).forEach(st => allStudents.push({ ...st, groupId: s.id }));
+        });
+    } else if (assignment.targetType === 'course') {
+        const [qGroups, qSubs] = await Promise.all([
+            getDocs(query(collection(db, "groups"), where("faculty", "==", assignment.faculty), where("course", "==", parseInt(assignment.course)))),
+            getDocs(query(collection(db, "submissions"), where("assignmentId", "==", assignment.id)))
+        ]);
+        snapSubs = qSubs;
+        qGroups.forEach(s => {
+            const g = s.data();
+            groupOptions.push({ id: s.id, name: g.name });
+            (g.students || []).forEach(st => allStudents.push({ ...st, groupId: s.id }));
+        });
+    } else {
+        const [snapGroup, qSubs] = await Promise.all([
+            getDoc(doc(db, "groups", assignment.groupId)),
+            getDocs(query(collection(db, "submissions"), where("assignmentId", "==", assignment.id)))
+        ]);
+        snapSubs = qSubs;
+        const groupData = snapGroup.data();
+        allStudents = (groupData.students || []).map(st => ({ ...st, groupId: assignment.groupId }));
+        groupOptions = [{ id: assignment.groupId, name: groupData.name }];
+    }
 
     // Find the last test ID in the sequence (merged or single)
     const lastTestId = mergedIds.length > 0 ? mergedIds[mergedIds.length - 1] : assignment.testId;
@@ -427,9 +457,16 @@ async function renderIntro(container) {
                         </div>
                     </div>
 
-                    <select id="student-name-select" class="ms-input" style="background: #F8FAFC; margin-bottom: 20px; color: #1B2559">
+                    ${assignment.targetType ? `
+                    <select id="group-select" class="ms-input" style="background: #F8FAFC; margin-bottom: 15px; color: #1B2559; font-weight: 700">
+                        <option value="">Guruhni tanlang...</option>
+                        ${groupOptions.map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
+                    </select>
+                    ` : ''}
+
+                    <select id="student-name-select" class="ms-input" style="background: #F8FAFC; margin-bottom: 20px; color: #1B2559" ${assignment.targetType ? 'disabled' : ''}>
                         <option value="">Ro'yxatdan tanlang...</option>
-                        ${availableStudents.map(s => `<option value="${s.name}">${s.name}</option>`).join('')}
+                        ${!assignment.targetType ? availableStudents.map(s => `<option value="${s.name}" data-gid="${s.groupId}">${s.name}</option>`).join('') : ''}
                     </select>
 
                     <button class="ms-next-btn" id="start-btn" style="width: 100%; justify-content: center; height: 55px; border-radius: 18px">
@@ -457,9 +494,56 @@ async function renderIntro(container) {
     `;
     if (window.lucide) window.lucide.createIcons();
 
-    document.getElementById('start-btn').onclick = () => {
+    if (assignment.targetType) {
+        document.getElementById('group-select').onchange = (e) => {
+            const gId = e.target.value;
+            const sSelect = document.getElementById('student-name-select');
+            sSelect.innerHTML = `<option value="">Ro'yxatdan tanlang...</option>`;
+            if (gId) {
+                const gStudents = availableStudents.filter(s => s.groupId === gId);
+                sSelect.innerHTML += gStudents.map(s => `<option value="${s.name}" data-gid="${s.groupId}">${s.name}</option>`).join('');
+                sSelect.disabled = false;
+            } else {
+                sSelect.disabled = true;
+            }
+        };
+    }
+
+    document.getElementById('start-btn').onclick = async () => {
         studentName = document.getElementById('student-name-select').value;
-        if (!studentName) return showToast("Ismingizni tanlang", "warning");
+        const selectedOption = document.getElementById('student-name-select').selectedOptions[0];
+        if (!studentName || !selectedOption) return showToast("Ismingizni tanlang", "warning");
+        studentGroupId = selectedOption.dataset.gid || assignment.groupId;
+
+        // Determine correct test to start/resume if it's a merged test
+        if (mergedIds.length > 0) {
+            // Find what they already submitted
+            const studentSubs = snapSubs.docs.filter(d => d.data().studentName === studentName);
+            const submittedTestIds = new Set(studentSubs.map(d => d.data().testId));
+            
+            // Find the first test index in mergedIds that is NOT in submittedTestIds
+            let resumeIdx = 0;
+            for (let i = 0; i < mergedIds.length; i++) {
+                if (!submittedTestIds.has(mergedIds[i])) {
+                    resumeIdx = i;
+                    break;
+                }
+            }
+            currentMergedIdx = resumeIdx;
+
+            // Load the correct test
+            const nextTestRef = doc(db, "tests", mergedIds[currentMergedIdx]);
+            const nextSnap = await getDoc(nextTestRef);
+            if (nextSnap.exists()) {
+                test = { id: nextSnap.id, ...nextSnap.data() };
+                currentQ = 0;
+                answers = new Array(test.questions.length).fill(null);
+                totalTimeSeconds = (test.timeLimit || 30) * 60;
+            } else {
+                return showToast("Test topilmadi", "error");
+            }
+        }
+
         startTimer(container);
         renderQuestion(container);
     };
@@ -639,11 +723,12 @@ async function finishTest(container) {
         });
 
         // 2. Save Submission
+        const activeGroupId = studentGroupId || assignment.groupId;
         await addDoc(collection(db, "submissions"), {
             testId: test.id,
             testTitle: test.title,
             assignmentId: assignment.id,
-            groupId: assignment.groupId,
+            groupId: activeGroupId,
             studentName: studentName,
             answers: answers,
             score: score,
@@ -655,7 +740,7 @@ async function finishTest(container) {
 
         // 3. Update Student Profile if important
         if (test.isProfileData) {
-            const groupRef = doc(db, "groups", assignment.groupId);
+            const groupRef = doc(db, "groups", activeGroupId);
             const groupSnap = await getDoc(groupRef);
             if (groupSnap.exists()) {
                 const data = groupSnap.data();
