@@ -685,7 +685,7 @@ export async function renderAdmin(container) {
 
     async function renderMergedTestCreator(area, existing = null) {
         const tests = (await fetchData("tests")).filter(t => t.type !== 'merged');
-        let selectedIds = existing?.testIds || [];
+        let selectedIds = existing?.testIds ? existing.testIds.filter(id => tests.some(t => t.id === id)) : [];
 
         const render = () => {
             area.innerHTML = `
@@ -1685,7 +1685,7 @@ ${groupsContent}
             if (f === 'all') return showToast("Iltimos, avval Fakultetni aniq tanlang", "warning");
             const tId = aTest.value;
             const test = tests.find(t => t.id === tId);
-            
+
             const token = Math.random().toString(36).substring(2, 8).toUpperCase();
             await addDoc(collection(db, "assignments"), {
                 testId: tId,
@@ -1707,7 +1707,7 @@ ${groupsContent}
             if (f === 'all' || c === 'all') return showToast("Iltimos, Fakultet va Kursni aniq tanlang", "warning");
             const tId = aTest.value;
             const test = tests.find(t => t.id === tId);
-            
+
             const token = Math.random().toString(36).substring(2, 8).toUpperCase();
             await addDoc(collection(db, "assignments"), {
                 testId: tId,
@@ -1823,7 +1823,7 @@ ${groupsContent}
 
                 const gIds = new Set(filteredGroups.map(g => g.id));
                 let filteredSubs = (subs || []).filter(s => gIds.has(s.groupId));
-                
+
                 const assigns = await fetchData("assignments");
                 const selectedTest = tests.find(t => t.id === tId);
                 const isMergedTest = selectedTest?.type === 'merged';
@@ -1832,7 +1832,7 @@ ${groupsContent}
                     if (isMergedTest) {
                         const mergedAssignIds = new Set(assigns.filter(a => a.testId === tId).map(a => a.id));
                         const validSubs = filteredSubs.filter(s => mergedAssignIds.has(s.assignmentId));
-                        
+
                         // Group by student to sum scores for merged tests
                         const studentTotals = {};
                         validSubs.forEach(s => {
@@ -1847,7 +1847,7 @@ ${groupsContent}
                         filteredSubs = filteredSubs.filter(s => s.testId === tId);
                     }
                 }
-                
+
                 if (gender !== 'all') {
                     filteredSubs = filteredSubs.filter(s => {
                         const subGroup = filteredGroups.find(g => g.id === s.groupId);
@@ -1951,7 +1951,7 @@ ${groupsContent}
                         else genderCounts.boy++;
                     }
                 });
-                
+
                 const genderCtx = document.getElementById('genderChart').getContext('2d');
                 new Chart(genderCtx, {
                     type: 'doughnut',
@@ -1961,7 +1961,7 @@ ${groupsContent}
                     },
                     options: { plugins: { legend: { display: false } } }
                 });
-                
+
                 const totalGender = genderCounts.boy + genderCounts.girl;
                 document.getElementById('gender-legend').innerHTML = `
                     <div class="flex-between mb-2">
@@ -1983,12 +1983,12 @@ ${groupsContent}
                     if (d1 !== d2) return d1.localeCompare(d2);
                     return (a.name || '').localeCompare(b.name || '');
                 });
-                
+
                 document.getElementById('groups-body').innerHTML = sortedGroups.map(g => {
                     const gStudents = g.students?.length || 0;
                     const gSubs = filteredSubs.filter(s => s.groupId === g.id);
                     const tSubmits = new Set(gSubs.map(s => s.studentName)).size;
-                    
+
                     const prc = gStudents ? Math.round(tSubmits / gStudents * 100) : 0;
                     return `<tr>
                         <td><span class="badge badge-info"><b>${g.course || 1}-kurs</b></span></td>
@@ -2003,19 +2003,19 @@ ${groupsContent}
                     const qDetails = document.getElementById('q-details-area');
                     let qHtml = `<div class="card"><h3>Har bir savol bo'yicha tahlil</h3><div class="mt-4 grid grid-2" style="gap: 20px">`;
                     const chartDataArray = [];
-                    
+
                     selectedTest.questions.forEach((q, i) => {
                         if (q.type === 'text' || !q.options) return;
                         const qCounts = {};
                         q.options.forEach(o => qCounts[o.text] = 0);
                         filteredSubs.forEach(s => { if (s.answers && s.answers[i]) qCounts[s.answers[i]] = (qCounts[s.answers[i]] || 0) + 1; });
-                        
+
                         const canvasId = `qChart_${i}`;
                         qHtml += `<div class="mb-4 p-4 border" style="border-radius: 12px; background: rgba(0,0,0,0.01)">
                             <strong style="display:block; margin-bottom:15px; font-size: 0.95rem">${i + 1}. ${q.text}</strong>
                             <div style="height: 180px; width: 100%"><canvas id="${canvasId}"></canvas></div>
                         </div>`;
-                        
+
                         chartDataArray.push({
                             id: canvasId,
                             labels: Object.keys(qCounts).map(l => l.length > 15 ? l.substring(0, 15) + '...' : l),
@@ -2023,10 +2023,10 @@ ${groupsContent}
                             fullLabels: Object.keys(qCounts)
                         });
                     });
-                    
+
                     qHtml += `</div></div>`;
                     qDetails.innerHTML = qHtml;
-                    
+
                     chartDataArray.forEach(cd => {
                         const qCtx = document.getElementById(cd.id).getContext('2d');
                         new Chart(qCtx, {
@@ -2045,7 +2045,7 @@ ${groupsContent}
                                 maintainAspectRatio: false,
                                 plugins: {
                                     legend: { display: false },
-                                    tooltip: { callbacks: { title: function(context) { return cd.fullLabels[context[0].dataIndex]; } } }
+                                    tooltip: { callbacks: { title: function (context) { return cd.fullLabels[context[0].dataIndex]; } } }
                                 },
                                 scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
                             }
@@ -2060,18 +2060,18 @@ ${groupsContent}
                         const oldWidth = element.style.width;
                         const oldMaxWidth = element.style.maxWidth;
                         const oldPadding = element.style.padding;
-                        
+
                         // PDF formatiga to'g'ri sig'ishi uchun qat'iy o'lcham beramiz
                         element.style.width = '794px'; // A4 width at 96 DPI
                         element.style.maxWidth = '794px';
                         element.style.padding = '20px';
-                        
+
                         const opt = {
-                            margin:       [0.3, 0.3, 0.3, 0.3], // Top, Left, Bottom, Right
-                            filename:     'analitika_hisoboti.pdf',
-                            image:        { type: 'jpeg', quality: 1.0 },
-                            html2canvas:  { scale: 2, useCORS: true, windowWidth: 794 },
-                            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+                            margin: [0.3, 0.3, 0.3, 0.3], // Top, Left, Bottom, Right
+                            filename: 'analitika_hisoboti.pdf',
+                            image: { type: 'jpeg', quality: 1.0 },
+                            html2canvas: { scale: 2, useCORS: true, windowWidth: 794 },
+                            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
                         };
                         html2pdf().set(opt).from(element).save().then(() => {
                             element.style.width = oldWidth;
@@ -2085,11 +2085,11 @@ ${groupsContent}
                     document.getElementById('btn-export-word').onclick = () => {
                         const element = document.getElementById('export-content');
                         const clone = element.cloneNode(true);
-                        
+
                         // Canvaslarni rasmga o'zgartirish
                         const originalCanvases = element.querySelectorAll('canvas');
                         const clonedCanvases = clone.querySelectorAll('canvas');
-                        for(let i=0; i<originalCanvases.length; i++) {
+                        for (let i = 0; i < originalCanvases.length; i++) {
                             const img = document.createElement('img');
                             img.src = originalCanvases[i].toDataURL('image/png');
                             img.style.maxWidth = '100%';
@@ -2116,7 +2116,7 @@ ${groupsContent}
                         const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Hisobot</title>" + styles + "</head><body>";
                         const footer = "</body></html>";
                         const sourceHTML = header + clone.innerHTML + footer;
-                        
+
                         const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
                         const fileDownload = document.createElement("a");
                         document.body.appendChild(fileDownload);
@@ -2491,7 +2491,7 @@ ${groupsContent}
     async function renderAttendanceTab(area) {
         pageTitle.innerText = "Yo'qlama";
         const [tests, groups, assigns, users] = await Promise.all([fetchData("tests"), fetchData("groups"), fetchData("assignments"), fetchData("users")]);
-        
+
         const allTutors = [...new Set(users.filter(u => u.role === 'tyutor').map(u => u.name))];
 
         area.innerHTML = `
@@ -2532,7 +2532,7 @@ ${groupsContent}
         document.getElementById('btn-update-attendance').onclick = async () => {
             const btn = document.getElementById('btn-update-attendance');
             const contentArea = document.getElementById('attendance-content-area');
-            
+
             btn.disabled = true;
             btn.innerHTML = `<div class="loader-sm"></div> Yuklanmoqda...`;
             contentArea.innerHTML = `<div class="flex-center py-5"><div class="loader"></div></div>`;
@@ -2564,46 +2564,46 @@ ${groupsContent}
                         validSubs = validSubs.filter(s => s.testId === tId);
                     }
                 }
-                
+
                 validSubs.forEach(s => submittedMap.add(`${s.groupId}_${s.studentName}`));
 
                 // Aggregate statistics for charts
                 let totalStudents = 0;
                 let totalSubmitted = 0;
-                
+
                 let boysTotal = 0, boysSubmitted = 0;
                 let girlsTotal = 0, girlsSubmitted = 0;
-                
+
                 const statsByFaculty = {};
                 const statsByTutor = {};
-                
+
                 // Group-level details
                 const groupDetails = filteredGroups.map(g => {
                     const groupStudents = g.students || [];
                     const count = groupStudents.length;
                     const submittedStudents = groupStudents.filter(s => submittedMap.has(`${g.id}_${s.name}`));
                     const unsubmittedStudents = groupStudents.filter(s => !submittedMap.has(`${g.id}_${s.name}`));
-                    
+
                     groupStudents.forEach(s => {
                         let isBoy = true;
                         if (s.gender === 'girl') isBoy = false;
                         else if (s.gender !== 'boy') isBoy = inferGender(s.name) !== 'girl';
-                        
+
                         const isSub = submittedMap.has(`${g.id}_${s.name}`);
-                        if (isBoy) { boysTotal++; if(isSub) boysSubmitted++; }
-                        else { girlsTotal++; if(isSub) girlsSubmitted++; }
+                        if (isBoy) { boysTotal++; if (isSub) boysSubmitted++; }
+                        else { girlsTotal++; if (isSub) girlsSubmitted++; }
                     });
-                    
+
                     totalStudents += count;
                     totalSubmitted += submittedStudents.length;
-                    
+
                     const fName = g.faculty || 'Akademiya';
-                    if(!statsByFaculty[fName]) statsByFaculty[fName] = { total: 0, submitted: 0 };
+                    if (!statsByFaculty[fName]) statsByFaculty[fName] = { total: 0, submitted: 0 };
                     statsByFaculty[fName].total += count;
                     statsByFaculty[fName].submitted += submittedStudents.length;
 
                     const tName = g.tutor || 'Biriktirilmagan';
-                    if(!statsByTutor[tName]) statsByTutor[tName] = { total: 0, submitted: 0 };
+                    if (!statsByTutor[tName]) statsByTutor[tName] = { total: 0, submitted: 0 };
                     statsByTutor[tName].total += count;
                     statsByTutor[tName].submitted += submittedStudents.length;
 
@@ -2622,8 +2622,8 @@ ${groupsContent}
 
                 // Render
                 const totalMissing = totalStudents - totalSubmitted;
-                const prc = totalStudents ? Math.round((totalSubmitted / totalStudents)*100) : 0;
-                
+                const prc = totalStudents ? Math.round((totalSubmitted / totalStudents) * 100) : 0;
+
                 contentArea.innerHTML = `
                     <div class="grid grid-3 mb-4 animate-fade">
                         <div class="card stat-card" style="padding: 1.5rem">
@@ -2649,7 +2649,7 @@ ${groupsContent}
                                 </div>
                                 <div class="text-right">
                                     <h3 style="color:#1B2559">${boysSubmitted} / ${boysTotal}</h3>
-                                    <span class="badge badge-primary">${boysTotal ? Math.round((boysSubmitted/boysTotal)*100) : 0}%</span>
+                                    <span class="badge badge-primary">${boysTotal ? Math.round((boysSubmitted / boysTotal) * 100) : 0}%</span>
                                 </div>
                             </div>
                         </div>
@@ -2661,7 +2661,7 @@ ${groupsContent}
                                 </div>
                                 <div class="text-right">
                                     <h3 style="color:#1B2559">${girlsSubmitted} / ${girlsTotal}</h3>
-                                    <span class="badge badge-danger" style="background: rgba(255, 91, 91, 0.1); color: #FF5B5B">${girlsTotal ? Math.round((girlsSubmitted/girlsTotal)*100) : 0}%</span>
+                                    <span class="badge badge-danger" style="background: rgba(255, 91, 91, 0.1); color: #FF5B5B">${girlsTotal ? Math.round((girlsSubmitted / girlsTotal) * 100) : 0}%</span>
                                 </div>
                             </div>
                         </div>
@@ -2692,7 +2692,7 @@ ${groupsContent}
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${groupDetails.sort((a,b) => b.unsubmitted - a.unsubmitted).map(g => `
+                                    ${groupDetails.sort((a, b) => b.unsubmitted - a.unsubmitted).map(g => `
                                     <tr>
                                         <td><b>${g.name}</b> <br><small class="text-muted">${g.course}-kurs, ${g.direction || ''}</small></td>
                                         <td>${g.tutor || 'Biriktirilmagan'}</td>
@@ -2772,12 +2772,12 @@ ${groupsContent}
                     b.onclick = () => {
                         const g = groupDetails.find(gd => gd.id === b.dataset.gid);
                         if (!g) return;
-                        
+
                         if (g.unsubmittedNames.length === 0) {
                             showToast("Bu guruhda hamma topshirgan!", "success");
                             return;
                         }
-                        
+
                         const html = `
                             <div style="max-height: 400px; overflow-y: auto;">
                                 <table style="width:100%; text-align:left; border-collapse:collapse;">
@@ -2790,7 +2790,7 @@ ${groupsContent}
                                     <tbody>
                                         ${g.unsubmittedNames.map((n, i) => `
                                             <tr style="border-bottom:1px solid #eee">
-                                                <td style="padding:10px">${i+1}</td>
+                                                <td style="padding:10px">${i + 1}</td>
                                                 <td style="padding:10px; font-weight:600">${n}</td>
                                             </tr>
                                         `).join('')}

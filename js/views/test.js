@@ -477,15 +477,15 @@ async function renderIntro(container) {
                     <div class="ms-submitted-section">
                         <div class="ms-submitted-header">Topshirgan talabalar (${completedCount})</div>
                         <div class="ms-submitted-grid">
-                            ${completedStudents.length > 0 ? 
-                                completedStudents.map(s => `
+                            ${completedStudents.length > 0 ?
+            completedStudents.map(s => `
                                     <div class="ms-submitted-tag">
                                         <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i>
                                         <span>${s.name}</span>
                                     </div>
-                                `).join('') 
-                                : `<div style="font-size: 0.75rem; color: #94A3B8; font-weight: 600;">Hozircha hech kim topshirmadi. Birinchi bo'lib boshlang!</div>`
-                            }
+                                `).join('')
+            : `<div style="font-size: 0.75rem; color: #94A3B8; font-weight: 600;">Hozircha hech kim topshirmadi. Birinchi bo'lib boshlang!</div>`
+        }
                         </div>
                     </div>
                 </div>
@@ -520,7 +520,7 @@ async function renderIntro(container) {
             // Find what they already submitted
             const studentSubs = snapSubs.docs.filter(d => d.data().studentName === studentName);
             const submittedTestIds = new Set(studentSubs.map(d => d.data().testId));
-            
+
             // Find the first test index in mergedIds that is NOT in submittedTestIds
             let resumeIdx = 0;
             for (let i = 0; i < mergedIds.length; i++) {
