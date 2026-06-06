@@ -1856,9 +1856,25 @@ ${groupsContent}
                     });
                 }
 
+                // To'liq mantiq: Har bir talaba uchun faqat bitta (eng oxirgi) natijani qoldirish (Deduplication)
+                // Bu 'Natijalar Taqsimoti' da jami topshirganlar sonidan oshib ketmasligini ta'minlaydi.
+                const dedupedSubs = {};
+                filteredSubs.forEach(s => {
+                    const key = tId === 'all' ? `${s.groupId}_${s.studentName}_${s.testId}` : `${s.groupId}_${s.studentName}`;
+                    if (!dedupedSubs[key]) {
+                        dedupedSubs[key] = s;
+                    } else {
+                        // Eng oxirgi topshirilganni olish
+                        if (s.timestamp && dedupedSubs[key].timestamp && s.timestamp > dedupedSubs[key].timestamp) {
+                            dedupedSubs[key] = s;
+                        }
+                    }
+                });
+                filteredSubs = Object.values(dedupedSubs);
+
                 // Calculate summary indicators
                 const totalTargetedStudents = filteredGroups.reduce((acc, g) => acc + (g.students?.length || 0), 0);
-                const uniqueStudentsSubmitted = new Set(filteredSubs.map(s => `${s.groupId}_${s.studentName}`)).size;
+                const uniqueStudentsSubmitted = filteredSubs.length;
                 const participationRate = totalTargetedStudents ? Math.round((uniqueStudentsSubmitted / totalTargetedStudents) * 100) : 0;
 
                 contentArea.innerHTML = `
