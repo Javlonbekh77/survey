@@ -1999,28 +1999,39 @@ ${groupsContent}
                     </tr>`;
                 }).join('');
 
+                let chartDataArray = [];
                 if (tId !== 'all' && selectedTest?.questions) {
                     const qDetails = document.getElementById('q-details-area');
                     let qHtml = `<div class="card"><h3>Har bir savol bo'yicha tahlil</h3><div class="mt-4 grid grid-2" style="gap: 20px">`;
-                    const chartDataArray = [];
+
+                    const totalRespondents = filteredSubs.length;
 
                     selectedTest.questions.forEach((q, i) => {
-                        if (q.type === 'text' || !q.options) return;
+                        if (q.type === 'text' || !q.options || q.options.length === 0) return;
+                        // Faqat haqiqiy variantlar bo'yicha hisoblash (bo'sh/noto'g'ri javoblarni chetlab o'tish)
+                        const validOptionTexts = new Set(q.options.map(o => o.text));
                         const qCounts = {};
-                        q.options.forEach(o => qCounts[o.text] = 0);
-                        filteredSubs.forEach(s => { if (s.answers && s.answers[i]) qCounts[s.answers[i]] = (qCounts[s.answers[i]] || 0) + 1; });
+                        q.options.forEach(o => { if (o.text) qCounts[o.text] = 0; });
+                        filteredSubs.forEach(s => {
+                            const ans = s.answers && s.answers[i];
+                            if (ans && validOptionTexts.has(ans)) {
+                                qCounts[ans] = (qCounts[ans] || 0) + 1;
+                            }
+                        });
 
                         const canvasId = `qChart_${i}`;
                         qHtml += `<div class="mb-4 p-4 border" style="border-radius: 12px; background: rgba(0,0,0,0.01)">
                             <strong style="display:block; margin-bottom:15px; font-size: 0.95rem">${i + 1}. ${q.text}</strong>
-                            <div style="height: 180px; width: 100%"><canvas id="${canvasId}"></canvas></div>
+                            <div style="height: 200px; width: 100%"><canvas id="${canvasId}"></canvas></div>
                         </div>`;
 
+                        const qTotal = Object.values(qCounts).reduce((a, b) => a + b, 0);
                         chartDataArray.push({
                             id: canvasId,
-                            labels: Object.keys(qCounts).map(l => l.length > 15 ? l.substring(0, 15) + '...' : l),
+                            labels: Object.keys(qCounts),
                             data: Object.values(qCounts),
-                            fullLabels: Object.keys(qCounts)
+                            total: qTotal,
+                            questionText: q.text
                         });
                     });
 
@@ -2029,13 +2040,15 @@ ${groupsContent}
 
                     chartDataArray.forEach(cd => {
                         const qCtx = document.getElementById(cd.id).getContext('2d');
+                        // Foizga aylantirish
+                        const pctData = cd.data.map(v => cd.total > 0 ? Math.round(v / cd.total * 100) : 0);
                         new Chart(qCtx, {
                             type: 'bar',
                             data: {
                                 labels: cd.labels,
                                 datasets: [{
-                                    label: 'Tanlandi',
-                                    data: cd.data,
+                                    label: 'Foiz',
+                                    data: pctData,
                                     backgroundColor: 'rgba(67, 24, 255, 0.7)',
                                     borderRadius: 4
                                 }]
@@ -2045,78 +2058,226 @@ ${groupsContent}
                                 maintainAspectRatio: false,
                                 plugins: {
                                     legend: { display: false },
-                                    tooltip: { callbacks: { title: function (context) { return cd.fullLabels[context[0].dataIndex]; } } }
+                                    tooltip: {
+                                        callbacks: {
+                                            label: ctx => ` ${pctData[ctx.dataIndex]}% (${cd.data[ctx.dataIndex]} ta)`
+                                        }
+                                    }
                                 },
-                                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        max: 100,
+                                        ticks: {
+                                            callback: val => val + '%'
+                                        }
+                                    }
+                                }
                             }
                         });
                     });
                 }
 
-                if (document.getElementById('btn-export-pdf')) {
-                    document.getElementById('btn-export-pdf').onclick = () => {
-                        const element = document.getElementById('export-content');
-                        // Vaqtincha kenglikni cheklash
-                        const oldWidth = element.style.width;
-                        const oldMaxWidth = element.style.maxWidth;
-                        const oldPadding = element.style.padding;
+                const generateExportHTML = () => {
+                    const fac = document.getElementById('f-fac').value;
+                    const dir = document.getElementById('f-dir').value;
+                    const crs = document.getElementById('f-course').value;
 
-                        // PDF formatiga to'g'ri sig'ishi uchun qat'iy o'lcham beramiz
-                        element.style.width = '794px'; // A4 width at 96 DPI
-                        element.style.maxWidth = '794px';
-                        element.style.padding = '20px';
+                    let html = `<div style="font-family: Calibri, 'Segoe UI', Arial, sans-serif; color: #1B2559; padding: 30px; max-width: 800px; margin: 0 auto; background: white; text-align: center;">`;
 
-                        const opt = {
-                            margin: [0.3, 0.3, 0.3, 0.3], // Top, Left, Bottom, Right
-                            filename: 'analitika_hisoboti.pdf',
-                            image: { type: 'jpeg', quality: 1.0 },
-                            html2canvas: { scale: 2, useCORS: true, windowWidth: 794 },
-                            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-                        };
-                        html2pdf().set(opt).from(element).save().then(() => {
-                            element.style.width = oldWidth;
-                            element.style.maxWidth = oldMaxWidth;
-                            element.style.padding = oldPadding;
+                    // Top Info
+                    html += `<div style="font-size: 16px; margin-bottom: 30px; line-height: 1.8; text-align: center;">
+                                <div><span style="border-bottom: 2px dashed red; margin-right: 10px;">Fakultet:</span> ${fac === 'all' ? 'Barchasi' : fac}</div>
+                                <div><span style="border-bottom: 2px dashed red; margin-right: 10px;">Yo'nalish:</span> ${dir === 'all' ? 'Barchasi' : dir}</div>
+                                <div><span style="border-bottom: 2px dashed red; margin-right: 10px;">Kurs:</span> ${crs === 'all' ? 'Barchasi' : crs + '-kurs'}</div>
+                             </div>`;
+
+                    // Gender tahlili (Word uchun)
+                    const genderCanvas = document.getElementById('genderChart');
+                    if (genderCanvas) {
+                        const totalG = genderCounts.boy + genderCounts.girl;
+                        const boyPct = totalG ? Math.round(genderCounts.boy / totalG * 100) : 0;
+                        const girlPct = totalG ? Math.round(genderCounts.girl / totalG * 100) : 0;
+                        html += `<div style="margin-bottom: 30px; text-align: center;">
+                                    <h3 style="font-size: 17px; color: #1B2559; margin-bottom: 15px;">Gender Tahlili</h3>
+                                    <img src="${genderCanvas.toDataURL('image/png')}" style="max-width: 260px; height: auto; margin: 0 auto 15px auto; display: block;" />
+                                    <div style="font-size: 14px; color: #64748B; text-align: center;">
+                                        <div style="margin-bottom: 8px;"><span style="display:inline-block; width:12px; height:12px; background:#0055FF; border-radius:50%; margin-right:8px;"></span>O'g'il bolalar: <strong>${genderCounts.boy} ta (${boyPct}%)</strong></div>
+                                        <div><span style="display:inline-block; width:12px; height:12px; background:#FF66CC; border-radius:50%; margin-right:8px;"></span>Qiz bolalar: <strong>${genderCounts.girl} ta (${girlPct}%)</strong></div>
+                                    </div>
+                                </div>`;
+                    }
+
+                    // Questions
+                    if (chartDataArray && chartDataArray.length > 0) {
+                        chartDataArray.forEach((cd, i) => {
+                            const qCanvas = document.getElementById(cd.id);
+                            if (qCanvas) {
+                                html += `<div style="border-top: 2px dashed #ccc; margin: 30px 0;"></div>
+                                         <div style="padding: 20px; border-radius: 16px; text-align: center;">
+                                            <h3 style="font-size: 15px; color: #1B2559; margin-bottom: 15px; text-align: center; line-height: 1.5;">${i + 1}. ${cd.questionText}</h3>
+                                            <img src="${qCanvas.toDataURL('image/png')}" style="max-width: 100%; height: auto; margin: 0 auto; display:block;" />
+                                         </div>`;
+                            }
                         });
+                    }
+
+                    html += `</div>`;
+                    return html;
+                };
+
+                if (document.getElementById('btn-export-pdf')) {
+                    document.getElementById('btn-export-pdf').onclick = async () => {
+                        const btn = document.getElementById('btn-export-pdf');
+                        btn.disabled = true;
+                        btn.textContent = 'PDF tayyorlanmoqda...';
+
+                        try {
+                            const fac = document.getElementById('f-fac').value;
+                            const dir = document.getElementById('f-dir').value;
+                            const crs = document.getElementById('f-course').value;
+
+                            // jsPDF to'g'ridan-to'g'ri ishlatamiz — html2canvas'ning bitta-katta-canvas cheklovi yo'q
+                            const { jsPDF } = window.jspdf;
+                            const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+
+                            const pageW = pdf.internal.pageSize.getWidth();   // ~210mm
+                            const pageH = pdf.internal.pageSize.getHeight();  // ~297mm
+                            const marginX = 15;
+                            const marginY = 15;
+                            const contentW = pageW - marginX * 2;
+
+                            // --- Sarlavha sahifasi ---
+                            pdf.setFont('helvetica', 'bold');
+                            pdf.setFontSize(16);
+                            pdf.setTextColor(27, 37, 89);
+                            pdf.text('Analitik Hisobot', pageW / 2, marginY + 5, { align: 'center' });
+
+                            pdf.setFont('helvetica', 'normal');
+                            pdf.setFontSize(12);
+                            pdf.setTextColor(100, 116, 139);
+
+                            const labelX = marginX;
+                            const valueX = marginX + 30;
+                            let y = marginY + 20;
+
+                            const labels = ['Fakultet:', "Yo'nalish:", 'Kurs:'];
+                            const values = [
+                                fac === 'all' ? 'Barchasi' : fac,
+                                dir === 'all' ? 'Barchasi' : dir,
+                                crs === 'all' ? 'Barchasi' : crs + '-kurs'
+                            ];
+
+                            labels.forEach((lbl, idx) => {
+                                pdf.setFont('helvetica', 'bold');
+                                pdf.setTextColor(27, 37, 89);
+                                pdf.text(lbl, labelX, y);
+                                pdf.setFont('helvetica', 'normal');
+                                pdf.setTextColor(60, 60, 100);
+                                pdf.text(values[idx], valueX + 5, y);
+                                // kichik qizil chiziq label ostiga
+                                pdf.setDrawColor(220, 50, 50);
+                                pdf.setLineWidth(0.4);
+                                pdf.line(labelX, y + 1, labelX + 27, y + 1);
+                                y += 10;
+                            });
+
+                            // --- Gender tahlili sahifasi ---
+                            const genderCanvas = document.getElementById('genderChart');
+                            if (genderCanvas) {
+                                pdf.addPage();
+                                let gy = marginY;
+                                pdf.setFont('helvetica', 'bold');
+                                pdf.setFontSize(14);
+                                pdf.setTextColor(27, 37, 89);
+                                pdf.text('Gender Tahlili', pageW / 2, gy, { align: 'center' });
+                                gy += 10;
+                                const gImgData = genderCanvas.toDataURL('image/png');
+                                const gImgW = 100;
+                                const gImgH = 80;
+                                pdf.addImage(gImgData, 'PNG', (pageW - gImgW) / 2, gy, gImgW, gImgH);
+                                gy += gImgH + 8;
+                                // Gender legend
+                                const totalG = genderCounts.boy + genderCounts.girl;
+                                const boyPct = totalG ? Math.round(genderCounts.boy / totalG * 100) : 0;
+                                const girlPct = totalG ? Math.round(genderCounts.girl / totalG * 100) : 0;
+                                const gLegends = [
+                                    { label: "O'g'il bolalar", count: genderCounts.boy, pct: boyPct, color: [0, 85, 255] },
+                                    { label: 'Qiz bolalar', count: genderCounts.girl, pct: girlPct, color: [255, 102, 204] }
+                                ];
+                                gLegends.forEach(gl => {
+                                    pdf.setFillColor(...gl.color);
+                                    pdf.rect((pageW - 80) / 2, gy - 3, 4, 4, 'F');
+                                    pdf.setFont('helvetica', 'normal');
+                                    pdf.setFontSize(11);
+                                    pdf.setTextColor(60, 60, 100);
+                                    pdf.text(`${gl.label}: ${gl.count} ta (${gl.pct}%)`, (pageW - 80) / 2 + 7, gy);
+                                    gy += 8;
+                                });
+                            }
+
+                            // --- Har bir savol alohida qo'shiladi ---
+                            if (chartDataArray && chartDataArray.length > 0) {
+                                const questionsPerPage = 3;
+
+                                chartDataArray.forEach((cd, i) => {
+                                    const qCanvas = document.getElementById(cd.id);
+                                    if (!qCanvas) return;
+
+                                    if (i === 0 || i % questionsPerPage === 0) {
+                                        pdf.addPage();
+                                        y = marginY;
+                                    }
+
+                                    pdf.setDrawColor(200, 200, 200);
+                                    pdf.setLineWidth(0.3);
+                                    pdf.setLineDash([2, 2]);
+                                    pdf.line(marginX, y, pageW - marginX, y);
+                                    pdf.setLineDash([]);
+                                    y += 6;
+
+                                    pdf.setFont('helvetica', 'bold');
+                                    pdf.setFontSize(11);
+                                    pdf.setTextColor(27, 37, 89);
+                                    const qLabel = `${i + 1}. ${cd.questionText}`;
+                                    const wrappedText = pdf.splitTextToSize(qLabel, contentW);
+                                    pdf.text(wrappedText, marginX, y);
+                                    y += wrappedText.length * 6 + 4;
+
+                                    const imgData = qCanvas.toDataURL('image/png');
+                                    const chartH = 58;
+                                    pdf.addImage(imgData, 'PNG', marginX, y, contentW, chartH);
+                                    y += chartH + 10;
+                                });
+                            }
+
+                            pdf.save('analitika_hisoboti.pdf');
+
+                        } catch (e) {
+                            console.error('PDF export error:', e);
+                            alert('PDF yaratishda xatolik: ' + e.message);
+                        } finally {
+                            btn.disabled = false;
+                            btn.textContent = 'PDF';
+                            if (window.lucide) window.lucide.createIcons();
+                        }
                     };
                 }
 
                 if (document.getElementById('btn-export-word')) {
                     document.getElementById('btn-export-word').onclick = () => {
-                        const element = document.getElementById('export-content');
-                        const clone = element.cloneNode(true);
-
-                        // Canvaslarni rasmga o'zgartirish
-                        const originalCanvases = element.querySelectorAll('canvas');
-                        const clonedCanvases = clone.querySelectorAll('canvas');
-                        for (let i = 0; i < originalCanvases.length; i++) {
-                            const img = document.createElement('img');
-                            img.src = originalCanvases[i].toDataURL('image/png');
-                            img.style.maxWidth = '100%';
-                            img.style.height = 'auto';
-                            img.style.pageBreakInside = 'avoid';
-                            clonedCanvases[i].parentNode.replaceChild(img, clonedCanvases[i]);
-                        }
-
-                        // Word uchun maxsus uslublar (styles)
                         const styles = `
                             <style>
                                 @page { margin: 2cm; }
-                                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.5; max-width: 800px; margin: 0 auto; }
-                                h1, h2, h3 { color: #1B2559; margin-top: 20px; margin-bottom: 15px; page-break-after: avoid; }
-                                table { border-collapse: collapse; width: 100%; margin-bottom: 20px; font-size: 14px; page-break-inside: avoid; }
-                                th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; vertical-align: middle; }
-                                th { background-color: #f8f9fa; color: #1B2559; font-weight: bold; }
-                                .card { margin-bottom: 25px; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; page-break-inside: avoid; background-color: white; }
-                                .text-muted { color: #64748B; font-size: 12px; }
-                                img { max-width: 650px; height: auto; display: block; margin: 15px auto; page-break-inside: avoid; }
+                                body { 
+                                    font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; 
+                                    text-align: center;
+                                    color: #1B2559;
+                                }
+                                div, h3, p, table { text-align: center; margin-left: auto; margin-right: auto; }
                             </style>
                         `;
-
-                        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Hisobot</title>" + styles + "</head><body>";
-                        const footer = "</body></html>";
-                        const sourceHTML = header + clone.innerHTML + footer;
-
+                        const sourceHTML = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Hisobot</title>" + styles + "</head><body>" + generateExportHTML() + "</body></html>";
                         const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
                         const fileDownload = document.createElement("a");
                         document.body.appendChild(fileDownload);
